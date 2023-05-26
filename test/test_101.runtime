@@ -1,3 +1,4 @@
+/test 101
 let total 0
 let fail 0
 
@@ -365,7 +366,7 @@ cal assert_eq $v 12
 cal count_result 'If greater true' $ret
 
 
-/ == FOR LOOP
+/ == For loop
 let lst []
 psh $lst 12 'ss' $nil 'ab'
 let res []
