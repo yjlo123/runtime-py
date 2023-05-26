@@ -68,7 +68,7 @@ class Parser:
                             't': '\t',
                             "'": "'",
                         }
-                        cc = esc_map.get(cc, '')
+                        cc = esc_map.get(cc, '\\'+cc)
                     current += cc
                     i += 1
                 current += line[i]
@@ -276,7 +276,8 @@ class Evaluator:
         elif cmd == 'inp':
             self._input(env, ts[1])
         elif cmd == 'prs':
-            self._assign(env, ts[1], json.loads(self.expr(env, ts[2])))
+            data = self.expr(env, ts[2])
+            self._assign(env, ts[1], json.loads(data))
 
 
         # === JUMP ===
