@@ -1,0 +1,65 @@
+[pass] Int eq
+[pass] Int not eq
+[pass] Arith add int & int
+[pass] Arith add str & str
+[pass] Arith add int & str
+[pass] Arith add str & int
+[pass] Arith add itoa
+[pass] Arith sub
+[pass] Arith sub atoi
+[pass] Arith mul
+[pass] Arith mul str
+[pass] Arith div
+[pass] Arith mod
+[pass] Type int
+[pass] Type str
+[pass] Type list
+[pass] Type map
+[pass] Type compare int & str
+[pass] List empty
+[pass] List not empty
+[pass] List push
+[pass] List length
+[pass] List get
+[pass] List put
+[pass] List pol 1
+[pass] List pol 2
+[pass] List pop 1
+[pass] List pop 2
+[pass] List pop 3
+[pass] String push 1
+[pass] String push 2
+[pass] String push 3
+[pass] String pop
+[pass] String len
+[pass] String get
+[pass] String get invalid
+[pass] String put
+[pass] String add
+[pass] String poll 1
+[pass] String poll 2
+[pass] String poll 3
+[pass] Map get 1
+[pass] Map get 2
+[pass] Map get nil
+[pass] Map get replaced
+[pass] Map length
+[pass] Map keys
+[pass] Map get deleted
+[pass] Parse JSON get int
+[pass] Parse JSON get string
+[pass] Parse JSON get nil
+[pass] Parse JSON get list
+[pass] Parse JSON inner list
+[pass] Parse JSON inner map
+[pass] If equal false
+[pass] If equal true
+[pass] If equal else
+[pass] If greater else
+[pass] If greater true
+[pass] For loop list
+[pass] For loop int range
+[pass] For loop map
+============
+Total 62/62
+Failed 0

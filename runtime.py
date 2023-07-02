@@ -87,10 +87,21 @@ class Parser:
             tokens.append(current)
         return tokens
 
+class FileLogger:
+    def print(self, text, end=None):
+        text += '\n' if end is None else end
+        with open("log.txt", 'a') as log_file:
+            log_file.write(text)
 
 class Evaluator:
-    def __init__(self):
+    def __init__(self, output_device=None):
         self.extended = {}
+        self.display = None  # default standard out
+        if output_device == 'oled':
+            from oled import oled
+            self.display = oled.Display
+        elif output_device == 'file':
+            self.display = FileLogger()
 
     def extend(self, cmd, handler):
         self.extended[cmd] = handler
@@ -141,7 +152,10 @@ class Evaluator:
         end_char = self.expr(env, ts[2]) if len(ts) > 2 else '\n'
         if res is None:
             res = '(nil)'
-        print(str(res), end=end_char)
+        if self.display:
+            self.display.print(str(res), end_char)
+        else:
+            print(str(res), end=end_char)
 
     def _input(self, env, var):
         text = input()
@@ -559,11 +573,15 @@ class Evaluator:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('Usage: python3 runtime.py <input_file>')
+        print('Usage: python3 runtime.py <input_file> [<output-device>]')
         sys.exit(1)
+    
+    output_device = None
+    if len(sys.argv) >= 3:
+        output_device = sys.argv[2]
 
     parser = Parser()
-    evaluator = Evaluator()
+    evaluator = Evaluator(output_device=output_device)
     env = {
         'pc': 0,
         'stack': [],
