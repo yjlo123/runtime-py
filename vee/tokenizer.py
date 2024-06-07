@@ -1,14 +1,14 @@
 from enum import Enum
 
 class TokenType(Enum):
-    KEY = 1
-    IDN = 2
-    NUM = 3
-    STR = 4
-    NEL = 5
-    SYM = 6
-    EOF = 99
-    NON = 100
+    KEY = 1    # keyword
+    IDN = 2    # identifier
+    NUM = 3    # number
+    STR = 4    # string
+    NEL = 5    # newline
+    SYM = 6    # symbol
+    EOF = 99   # end of file
+    NON = 100  # none
 
 class Token:
     def __init__(self, value, type, line, column):
@@ -19,6 +19,10 @@ class Token:
     
     def __str__(self):
         return f'{self.value} ({self.type})'
+
+KEY_WORDS = [
+    'class', 'func', 'for', 'if', 'return'
+]
 
 class Tokenizer:
     def __init__(self):
@@ -32,6 +36,8 @@ class Tokenizer:
             type = TokenType.NON
             if self.current.isdigit():
                 type = TokenType.NUM
+            elif self.current in KEY_WORDS:
+                type = TokenType.KEY
             else:
                 type = TokenType.IDN
             self.tokens.append(Token(self.current, type, self.line, self.column))
