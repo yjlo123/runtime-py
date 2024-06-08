@@ -17,4 +17,4 @@ if __name__ == "__main__":
         print_tokens(tokens)
         parser = Parser(tokens)
         ast = parser.parse()
-        print(ast)
+        ast.pretty_print(indent='', is_last=True)

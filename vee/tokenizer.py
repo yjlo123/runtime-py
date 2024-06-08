@@ -120,4 +120,4 @@ class Tokenizer:
 
 def print_tokens(tokens):
     for t in tokens:
-        print(f'{t.line}:{t.column} {t.type.name} {t.value}')
+        print(f'{t.line:3}:{t.column:2} {t.type.name} {t.value}')
