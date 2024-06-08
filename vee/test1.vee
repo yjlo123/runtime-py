@@ -3,11 +3,11 @@ names = ['siwei', 123]  // define an array
 func say_hi(name) {
     return 'hi ' + name
 }
-
+/*
 for name : names {
     print(say_hi(name))
 }
-/*
+
 class Counter {
     name = nil
     count = 0

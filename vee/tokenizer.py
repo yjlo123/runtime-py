@@ -16,9 +16,9 @@ class Token:
         self.type = type
         self.line = line
         self.column = column
-    
+
     def __str__(self):
-        return f'{self.value} ({self.type})'
+        return f'{self.value} ({self.type.name})[{self.line}:{self.column}]'
 
 KEY_WORDS = [
     'class', 'func', 'for', 'if', 'return'
@@ -31,7 +31,7 @@ class Tokenizer:
         self.column = 1
         self.current = ''
 
-    def add_token(self):
+    def add_current_token(self):
         if self.current:
             type = TokenType.NON
             if self.current.isdigit():
@@ -41,10 +41,14 @@ class Tokenizer:
             else:
                 type = TokenType.IDN
             self.tokens.append(Token(self.current, type, self.line, self.column))
+            self.column += len(self.current)
             self.current = ''
 
+    def add_token(self, value, type):
+        self.tokens.append(Token(value, type, self.line, self.column))
+        self.column += len(value or '')
+
     def tokenize(self, src):
-        self.tokens = []
         quote = None
         comment = None
         for c in src:
@@ -52,7 +56,8 @@ class Tokenizer:
                 if c != quote:
                     self.current += c
                 else:
-                    self.tokens.append(Token(self.current, TokenType.STR, self.line, self.column))
+                    self.add_token(self.current, TokenType.STR)
+                    self.column += 2  # for left and right quote
                     self.current = ''
                     quote = None
                 continue
@@ -81,35 +86,38 @@ class Tokenizer:
                         comment = '\n'
                         continue
                     elif c == '*':
-                        # multi-line comment 
+                        # multi-line comment
                         comment = '*'
                         continue
                     else:
                         # not comment
-                        self.add_token()
-                        self.tokens.append(Token('/', TokenType.SYM, self.line, self.column))
+                        self.add_current_token()
+                        self.add_token('/', TokenType.SYM)
             elif c == '/':
                 # new comment
                 comment = '?'
                 continue
 
             if c in [' ', '\t', '\n', '\r']:
-                self.add_token()
+                self.add_current_token()
+                self.column += 1
                 if c == '\n':
-                    self.tokens.append(Token('(<-|)', TokenType.NEL, self.line, self.column))
+                    self.add_token('(<-|)', TokenType.NEL)
                     self.line += 1
                     self.column = 1
             elif c in ['\'', '"']:
                 quote = c
                 assert(self.current == '')
             elif not (c.isalpha() or c.isdigit() or c == '_'):
-                self.add_token()
-                self.tokens.append(Token(c, TokenType.SYM, self.line, self.column))
+                self.add_current_token()
+                self.add_token(c, TokenType.SYM)
             else:
                 self.current += c
-        self.add_token()
+
+        self.add_current_token()
+        self.add_token(None, TokenType.EOF)
         return self.tokens
 
 def print_tokens(tokens):
     for t in tokens:
-        print(f'{t.line} {t.type.name} {t.value}')
+        print(f'{t.line}:{t.column} {t.type.name} {t.value}')
