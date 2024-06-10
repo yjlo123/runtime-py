@@ -19,11 +19,13 @@ class Node:
                 child.pretty_print(indent + f'{child_head}  ', i == len(self.children) - 1)
 
 class NodeType(Enum):
-    SEQ = 1
-    OPERATOR = 2
-    IDENTIFIER = 3
-    VALUE = 4
-    LIST = 5
+    EXPR_LIST = 1
+    STMT_LIST = 2
+    OPERATOR = 3
+    IDENTIFIER = 4
+    VALUE = 5
+    LIST = 6
+    FUNC_CALL = 7
     FUNCTION = 10
     FOR = 11
     IF = 12
@@ -76,6 +78,10 @@ class Parser:
         token = self.peek()
         if not token:
             return None
+    
+        if token.type == TokenType.SYM and token.value in ('{', '}', ']'):
+            return None
+        
         while token.type == TokenType.NEL:
             self.consume()
             return self.parse_expression()
@@ -107,6 +113,18 @@ class Parser:
         #     node.pretty_print(indent='', is_last=True)
         return node
 
+    def parse_expression_list(self):
+        # TODO: support both () and []
+        token = self.consume(type=TokenType.SYM, value='(')
+        node = Node(NodeType.EXPR_LIST, token)
+        while self.peek().value != ')':
+            arg = self.parse_expression()
+            node.children.append(arg)
+            if self.peek().value == ',':
+                self.consume()
+        self.consume(type=TokenType.SYM, value=')')
+        return node
+
     def parse_factor(self):
         token = self.peek()
         node = None
@@ -122,18 +140,18 @@ class Parser:
             self.consume(value=']')
         else:
             node = self.parse_atom()
-            while self.pos < len(self.tokens) and self.peek().value in PRECEDENCE:
-                left = node
-                node = Node(NodeType.OPERATOR, self.peek())
-                token = self.consume()
-                node.children.append(left)
-                node.children.append(self.parse_expression())
         return node
 
     def parse_atom(self):
         token = self.consume()
         if token.type == TokenType.IDN:
-            return Node(NodeType.IDENTIFIER, token)
+            node = Node(NodeType.IDENTIFIER, token)
+            # Lookahead to check if it's a function call
+            if self.pos < len(self.tokens) and self.peek().value == '(':
+                args = self.parse_expression_list()
+                node = Node(NodeType.FUNC_CALL, token)
+                node.children.append(args)
+            return node
         elif token.type in (TokenType.STR, TokenType.NUM) :
             return Node(NodeType.VALUE, token)
         elif token.value == '(':
@@ -143,7 +161,7 @@ class Parser:
         raise SyntaxError(f'Unexpected token: {token}')
 
 
-    def parse_statement(self):
+    def parse_stmt(self):
         token = self.peek()
         stmt_type = token.value
         match stmt_type:
@@ -152,12 +170,10 @@ class Parser:
                 self.consume()
                 node.children.append(self.parse_expression())
                 self.consume(value='{')
-                while self.peek().value != '}':
-                    self.consume()
+                true_clause = self.parse_stmt_list()
                 self.consume(value='}')
-                # TODO true clause
-                node.children.append(Node(NodeType.SEQ, None))
-                # TODO else
+                node.children.append(true_clause)
+                # TODO optional else
                 return node
             case 'func':
                 node =  Node(NodeType.FUNCTION, token)
@@ -175,12 +191,12 @@ class Parser:
             case _:
                 return Node(NodeType.TODO, token)
 
-    def parse(self):
-        root = Node(NodeType.SEQ, None)
+    def parse_stmt_list(self):
+        root = Node(NodeType.STMT_LIST, None)
         ast = root
         while self.pos < len(self.tokens):
             if self.peek().type == TokenType.KEY:
-                ast.children.append(self.parse_statement())
+                ast.children.append(self.parse_stmt())
             elif self.peek().type == TokenType.NEL:
                 self.consume()
                 continue
@@ -190,4 +206,9 @@ class Parser:
                 node = self.parse_expression()
                 if node:
                     ast.children.append(node)
+                else:
+                    break
         return root
+
+    def parse(self):
+        return self.parse_stmt_list()

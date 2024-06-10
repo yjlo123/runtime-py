@@ -1,6 +1,7 @@
 names = ['siwei', 123]  // define an array
 
 if names.len > 3 {
+    print(1 + names.len)
     print('long')
 }
 
