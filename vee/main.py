@@ -14,7 +14,8 @@ if __name__ == "__main__":
     with open(sys.argv[1], 'r') as src_file:
         tokenzier = Tokenizer()
         tokens = tokenzier.tokenize(src_file.read())
-        print_tokens(tokens)
+        # print_tokens(tokens)
+        
         parser = Parser(tokens)
         ast = parser.parse()
         ast.pretty_print(indent='', is_last=True)

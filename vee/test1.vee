@@ -8,12 +8,12 @@ if names.len > 3 {
 func say_hi(name) {
     return 'hi ' + name
 }
-
+/*
 for name : names {
     print(say_hi(name))
 }
 
-/*
+
 class Counter {
     name = nil
     count = 0

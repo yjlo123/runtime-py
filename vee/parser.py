@@ -29,6 +29,8 @@ class NodeType(Enum):
     FUNCTION = 10
     FOR = 11
     IF = 12
+    ELSE = 13
+    RETURN = 14
     TODO = 999
 
 KEY_WORDS = [
@@ -36,7 +38,8 @@ KEY_WORDS = [
     'func',
     'for',
     'if',
-    'else'
+    'else',
+    'return',
 ]
 
 PRECEDENCE = {
@@ -166,7 +169,7 @@ class Parser:
         stmt_type = token.value
         match stmt_type:
             case 'if':
-                node =  Node(NodeType.IF, token)
+                node = Node(NodeType.IF, token)
                 self.consume()
                 node.children.append(self.parse_expression())
                 self.consume(value='{')
@@ -176,17 +179,28 @@ class Parser:
                 # TODO optional else
                 return node
             case 'func':
-                node =  Node(NodeType.FUNCTION, token)
-                # TODO
-                while self.peek().value != '}':
+                node = Node(NodeType.FUNCTION, token)
+                func_name = self.consume()
+                # TODO parse args
+                while self.peek().value != '{':
                     self.consume()
+                self.consume(value='{')
+                func_body = self.parse_stmt_list()
                 self.consume(value='}')
+                node.children.append(func_body)
                 return node
             case 'for':
-                node =  Node(NodeType.FOR, token)
-                while self.peek().value != '}':
-                    self.consume()
+                node = Node(NodeType.FOR, token)
+                node.children.append(self.parse_expression())
+                self.consume(value='{')
+                for_body = self.parse_stmt_list()
                 self.consume(value='}')
+                node.children.append(for_body)
+                return node
+            case 'return':
+                node = Node(NodeType.RETURN, token)
+                self.consume()
+                node.children.append(self.parse_expression())
                 return node
             case _:
                 return Node(NodeType.TODO, token)
