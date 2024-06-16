@@ -1,6 +1,7 @@
 from enum import Enum
 from tokenizer import TokenType
 
+
 class Node:
     def __init__(self, type, token):
         self.type = type
@@ -18,6 +19,7 @@ class Node:
             for i, child in enumerate(self.children):
                 child.pretty_print(indent + f'{child_head}  ', i == len(self.children) - 1)
 
+
 class NodeType(Enum):
     EXPR_LIST = 1
     STMT_LIST = 2
@@ -32,6 +34,7 @@ class NodeType(Enum):
     RETURN = 14
     CLASS = 15
     TODO = 999
+
 
 KEY_WORDS = [
     'class',
@@ -59,6 +62,7 @@ PRECEDENCE = {
 
 LEFT_ASSOCIATIVE = {'+', '-', '*', '/'}
 
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -83,10 +87,10 @@ class Parser:
         token = self.peek()
         if not token:
             return None
-    
+
         if token.type == TokenType.SYM and token.value in ('{', '}', ']'):
             return None
-        
+
         while token.type == TokenType.NEL:
             self.consume()
             return self.parse_expression()
@@ -153,14 +157,13 @@ class Parser:
                 node = Node(NodeType.FUNC_CALL, token)
                 node.children.append(args)
             return node
-        elif token.type in (TokenType.STR, TokenType.NUM) :
+        elif token.type in (TokenType.STR, TokenType.NUM):
             return Node(NodeType.VALUE, token)
         elif token.value == '(':
             node = self.parse_expression()
             self.consume(value=')')  # consume ')'
             return node
         raise SyntaxError(f'Unexpected token: {token}')
-
 
     def parse_stmt(self):
         token = self.peek()
@@ -179,7 +182,9 @@ class Parser:
             case 'func':
                 node = Node(NodeType.FUNCTION, token)
                 self.consume(value='func')
-                node.children.append(Node(NodeType.VALUE, self.consume()))  # func name
+                node.children.append(
+                    Node(NodeType.VALUE, self.consume())
+                )  # func name
                 # TODO parse args
                 while self.peek().value != '{':
                     self.consume()
@@ -204,7 +209,9 @@ class Parser:
             case 'class':
                 node = Node(NodeType.CLASS, token)
                 self.consume(value='class')
-                node.children.append(Node(NodeType.VALUE, self.consume()))  # class name
+                node.children.append(
+                    Node(NodeType.VALUE, self.consume())
+                )  # class name
                 self.consume(value='{')
                 node.children.append(self.parse_stmt_list())
                 self.consume(value='}')
