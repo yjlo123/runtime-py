@@ -24,13 +24,13 @@ class NodeType(Enum):
     OPERATOR = 3
     IDENTIFIER = 4
     VALUE = 5
-    LIST = 6
     FUNC_CALL = 7
     FUNCTION = 10
     FOR = 11
     IF = 12
     ELSE = 13
     RETURN = 14
+    CLASS = 15
     TODO = 999
 
 KEY_WORDS = [
@@ -44,6 +44,8 @@ KEY_WORDS = [
 
 PRECEDENCE = {
     '=': 0,
+    '+=': 0,
+    ':': 0,
     '==': 1,
     '!=': 1,
     '>': 1,
@@ -116,31 +118,27 @@ class Parser:
         #     node.pretty_print(indent='', is_last=True)
         return node
 
-    def parse_expression_list(self):
-        # TODO: support both () and []
-        token = self.consume(type=TokenType.SYM, value='(')
+    def parse_expression_list(self, left):
+        LIST_PAIR = {
+            '(': ')',
+            '[': ']',
+        }
+        right = LIST_PAIR[left]
+        token = self.consume(type=TokenType.SYM, value=left)
         node = Node(NodeType.EXPR_LIST, token)
-        while self.peek().value != ')':
+        while self.peek().value != right:
             arg = self.parse_expression()
             node.children.append(arg)
             if self.peek().value == ',':
                 self.consume()
-        self.consume(type=TokenType.SYM, value=')')
+        self.consume(type=TokenType.SYM, value=right)
         return node
 
     def parse_factor(self):
         token = self.peek()
         node = None
         if token.value == '[':
-            # list literal
-            self.consume(value='[')
-            node = Node(NodeType.LIST, token)
-            if self.peek().value != ']':
-                node.children.append(self.parse_expression())
-            while self.peek().value != ']':
-                self.consume(value=',')
-                node.children.append(self.parse_expression())
-            self.consume(value=']')
+            return self.parse_expression_list('[')
         else:
             node = self.parse_atom()
         return node
@@ -151,7 +149,7 @@ class Parser:
             node = Node(NodeType.IDENTIFIER, token)
             # Lookahead to check if it's a function call
             if self.pos < len(self.tokens) and self.peek().value == '(':
-                args = self.parse_expression_list()
+                args = self.parse_expression_list('(')
                 node = Node(NodeType.FUNC_CALL, token)
                 node.children.append(args)
             return node
@@ -170,7 +168,7 @@ class Parser:
         match stmt_type:
             case 'if':
                 node = Node(NodeType.IF, token)
-                self.consume()
+                self.consume(value='if')
                 node.children.append(self.parse_expression())
                 self.consume(value='{')
                 true_clause = self.parse_stmt_list()
@@ -180,17 +178,18 @@ class Parser:
                 return node
             case 'func':
                 node = Node(NodeType.FUNCTION, token)
-                func_name = self.consume()
+                self.consume(value='func')
+                node.children.append(Node(NodeType.VALUE, self.consume()))  # func name
                 # TODO parse args
                 while self.peek().value != '{':
                     self.consume()
                 self.consume(value='{')
-                func_body = self.parse_stmt_list()
+                node.children.append(self.parse_stmt_list())  # func body
                 self.consume(value='}')
-                node.children.append(func_body)
                 return node
             case 'for':
                 node = Node(NodeType.FOR, token)
+                self.consume(value='for')
                 node.children.append(self.parse_expression())
                 self.consume(value='{')
                 for_body = self.parse_stmt_list()
@@ -199,8 +198,16 @@ class Parser:
                 return node
             case 'return':
                 node = Node(NodeType.RETURN, token)
-                self.consume()
+                self.consume(value='return')
                 node.children.append(self.parse_expression())
+                return node
+            case 'class':
+                node = Node(NodeType.CLASS, token)
+                self.consume(value='class')
+                node.children.append(Node(NodeType.VALUE, self.consume()))  # class name
+                self.consume(value='{')
+                node.children.append(self.parse_stmt_list())
+                self.consume(value='}')
                 return node
             case _:
                 return Node(NodeType.TODO, token)
