@@ -1,8 +1,15 @@
-names = ['siwei', 123]  // define an array
+names = ['siwei', ['yjlo', 123]]  // define an array
+bool = true
+
+print(names[1][0])
+
+map = {"a": 1, "c": 3} + {'d': false}
 
 if names.len > 3 {
     print(1 + names.len)
     print('long')
+} else {
+    names = []
 }
 
 func say_hi(name) {
@@ -10,7 +17,13 @@ func say_hi(name) {
 }
 
 for name : names {
-    print(say_hi(name))
+    if type(name) = 'list' {
+        if name.len > 1 {
+            print(say_hi(name[0]))
+        }
+    } else {
+        print(say_hi(name))
+    }
 }
 
 class Counter {

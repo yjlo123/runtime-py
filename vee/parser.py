@@ -62,6 +62,11 @@ PRECEDENCE = {
 
 LEFT_ASSOCIATIVE = {'+', '-', '*', '/'}
 
+LIST_PAIR = {
+    '(': ')',
+    '[': ']',
+    '{': '}',
+}
 
 class Parser:
     def __init__(self, tokens):
@@ -71,9 +76,9 @@ class Parser:
     def consume(self, type=None, value=None):
         token = self.tokens[self.pos]
         if type and token.type != type:
-            raise SyntaxError(f'Unexpected token: {token}, expected {type}')
+            raise SyntaxError(f'Unexpected token: {token}, expected type: {type}')
         if value and token.value != value:
-            raise SyntaxError(f'Unexpected token: {token}, expected {value}')
+            raise SyntaxError(f'Unexpected token: {token}, expected value: {value}')
         self.pos += 1
         return token
 
@@ -82,13 +87,20 @@ class Parser:
             return self.tokens[self.pos]
         else:
             raise SyntaxError()
-
+    
+    def peek_check(self, value, type=None):
+        if self.pos >= len(self.tokens):
+            return False
+        if type and self.peek().type != type:
+            return False
+        return self.peek().value == value
+        
     def parse_expression(self, min_precedence=0):
         token = self.peek()
-        if not token:
-            return None
 
-        if token.type == TokenType.SYM and token.value in ('{', '}', ']'):
+        # check if it's nothing to parse as expression next
+        if token.type == TokenType.SYM and token.value in ('}', ']'):
+            # '{' is a valid starting expression symbol
             return None
 
         while token.type == TokenType.NEL:
@@ -103,6 +115,8 @@ class Parser:
                     token.value in ('{', '}', ']'))
             ):
                 # newline is the end of expression
+                # incoming non-operator symbols -> end of expression
+                # '{' is not a valid operator here
                 break
             if token is None or token.value not in PRECEDENCE:
                 break
@@ -123,10 +137,6 @@ class Parser:
         return node
 
     def parse_expression_list(self, left):
-        LIST_PAIR = {
-            '(': ')',
-            '[': ']',
-        }
         right = LIST_PAIR[left]
         token = self.consume(type=TokenType.SYM, value=left)
         node = Node(NodeType.EXPR_LIST, token)
@@ -141,8 +151,8 @@ class Parser:
     def parse_factor(self):
         token = self.peek()
         node = None
-        if token.value == '[':
-            return self.parse_expression_list('[')
+        if token.value in LIST_PAIR:
+            return self.parse_expression_list(token.value)
         else:
             node = self.parse_atom()
         return node
@@ -152,18 +162,33 @@ class Parser:
         if token.type == TokenType.IDN:
             node = Node(NodeType.IDENTIFIER, token)
             # Lookahead to check if it's a function call
-            if self.pos < len(self.tokens) and self.peek().value == '(':
+            if self.peek_check('('):
                 args = self.parse_expression_list('(')
                 node = Node(NodeType.FUNC_CALL, token)
                 node.children.append(args)
+            # check if it's getting value by index/key
+            else:
+                while self.peek_check('['):
+                    idn_node = node
+                    left = self.consume(type=TokenType.SYM, value='[')
+                    node = Node(NodeType.OPERATOR, left)
+                    node.children.append(idn_node)
+                    node.children.append(self.parse_expression())  # index
+                    self.consume(type=TokenType.SYM, value=']')
             return node
         elif token.type in (TokenType.STR, TokenType.NUM):
             return Node(NodeType.VALUE, token)
         elif token.value == '(':
             node = self.parse_expression()
-            self.consume(value=')')  # consume ')'
+            self.consume(value=')')
             return node
         raise SyntaxError(f'Unexpected token: {token}')
+
+    def parse_block(self):
+        self.consume(value='{')
+        block = self.parse_stmt_list()
+        self.consume(value='}')
+        return block
 
     def parse_stmt(self):
         token = self.peek()
@@ -173,11 +198,10 @@ class Parser:
                 node = Node(NodeType.IF, token)
                 self.consume(value='if')
                 node.children.append(self.parse_expression())
-                self.consume(value='{')
-                true_clause = self.parse_stmt_list()
-                self.consume(value='}')
-                node.children.append(true_clause)
-                # TODO optional else
+                node.children.append(self.parse_block())
+                if self.peek_check('else'):
+                    self.consume(value='else')
+                    node.children.append(self.parse_block())
                 return node
             case 'func':
                 node = Node(NodeType.FUNCTION, token)
@@ -188,18 +212,13 @@ class Parser:
                 # TODO parse args
                 while self.peek().value != '{':
                     self.consume()
-                self.consume(value='{')
-                node.children.append(self.parse_stmt_list())  # func body
-                self.consume(value='}')
+                node.children.append(self.parse_block())
                 return node
             case 'for':
                 node = Node(NodeType.FOR, token)
                 self.consume(value='for')
                 node.children.append(self.parse_expression())
-                self.consume(value='{')
-                for_body = self.parse_stmt_list()
-                self.consume(value='}')
-                node.children.append(for_body)
+                node.children.append(self.parse_block())
                 return node
             case 'return':
                 node = Node(NodeType.RETURN, token)
@@ -212,9 +231,7 @@ class Parser:
                 node.children.append(
                     Node(NodeType.VALUE, self.consume())
                 )  # class name
-                self.consume(value='{')
-                node.children.append(self.parse_stmt_list())
-                self.consume(value='}')
+                node.children.append(self.parse_block())
                 return node
             case _:
                 return Node(NodeType.TODO, token)

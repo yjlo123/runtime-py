@@ -24,6 +24,13 @@ KEY_WORDS = [
     'class', 'func', 'for', 'if', 'return'
 ]
 
+MULTI_CHAR_OPERATORS = [
+    '==', '>=', '<=', '!=',
+    '++', '--', '**', '//',
+    '+=', '-=', '*=', '/=', '//=', '%='
+]
+
+
 class Tokenizer:
     def __init__(self):
         self.tokens = []
