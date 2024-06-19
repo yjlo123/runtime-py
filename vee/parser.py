@@ -263,23 +263,27 @@ class Parser:
                 raise SyntaxError(f'Unhandled keyword for statement: {token}')
 
     def parse_stmt_list(self):
-        root = Node(NodeType.STMT_LIST, None)
-        ast = root
+        ast = Node(NodeType.STMT_LIST, None)
         while self.pos < len(self.tokens):
             if self.peek().type == TokenType.KEY:
+                # statement
                 ast.children.append(self.parse_stmt())
             elif self.peek().type == TokenType.NEL:
+                # newline
                 self.consume()
                 continue
             elif self.peek().type == TokenType.EOF:
+                # EOF
                 break
             else:
+                # expression
                 node = self.parse_expression()
                 if node:
                     ast.children.append(node)
                 else:
+                    # end of statement list
                     break
-        return root
+        return ast
 
     def parse(self):
         return self.parse_stmt_list()
