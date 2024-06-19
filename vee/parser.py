@@ -17,7 +17,8 @@ class Node:
         child_head = ' ' if is_last else '│'
         if len(self.children) > 0:
             for i, child in enumerate(self.children):
-                child.pretty_print(indent + f'{child_head}  ', i == len(self.children) - 1)
+                child.pretty_print(
+                    indent + f'{child_head}  ', i == len(self.children) - 1)
 
 
 class NodeType(Enum):
@@ -80,6 +81,7 @@ LIST_PAIR = {
     '{': '}',
 }
 
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -88,9 +90,11 @@ class Parser:
     def consume(self, type=None, value=None):
         token = self.tokens[self.pos]
         if type and token.type != type:
-            raise SyntaxError(f'Unexpected token: {token}, expected type: {type}')
+            raise SyntaxError(
+                f'Unexpected token: {token}, expected type: {type}')
         if value and token.value != value:
-            raise SyntaxError(f'Unexpected token: {token}, expected value: {value}')
+            raise SyntaxError(
+                f'Unexpected token: {token}, expected value: {value}')
         self.pos += 1
         return token
 
@@ -99,14 +103,14 @@ class Parser:
             return self.tokens[self.pos]
         else:
             raise SyntaxError()
-    
+
     def peek_check(self, value, type=None):
         if self.pos >= len(self.tokens):
             return False
         if type and self.peek().type != type:
             return False
         return self.peek().value == value
-        
+
     def parse_expression(self, min_precedence=0):
         token = self.peek()
 
@@ -123,9 +127,8 @@ class Parser:
         while True:
             token = self.peek()
             if (token.type == TokenType.NEL or
-                    (token.type == TokenType.SYM and
-                    token.value in ('{', '}', ']'))
-            ):
+                (token.type == TokenType.SYM and
+                    token.value in ('{', '}', ']'))):
                 # newline is the end of expression
                 # incoming non-operator symbols -> end of expression
                 # '{' is not a valid operator here
@@ -139,7 +142,10 @@ class Parser:
 
             self.consume()
             left = node
-            right = self.parse_expression(precedence + 1 if token.value in LEFT_ASSOCIATIVE else precedence)
+            right = self.parse_expression(
+                precedence + 1
+                if token.value in LEFT_ASSOCIATIVE else
+                precedence)
             node = Node(NodeType.OPERATOR, token)
             node.children.append(left)
             node.children.append(right)
