@@ -24,12 +24,17 @@ KEY_WORDS = [
     'class', 'func', 'for', 'if', 'return'
 ]
 
-MULTI_CHAR_OPERATORS = [
-    '==', '>=', '<=', '!=',
-    '++', '--', '**', '//',
-    '+=', '-=', '*=', '/=', '//=', '%='
-]
-
+MULTI_CHAR_OPERATORS = {
+    '=': {'=='},
+    '>': {'>='},
+    '<': {'<='},
+    '!': {'!='},
+    '+': {'+=', '++'},
+    '-': {'-=', '--'},
+    '*': {'*=', '**'},
+    '/': {'/='},
+    '%': {'%='},
+}
 
 class Tokenizer:
     def __init__(self):
@@ -58,8 +63,9 @@ class Tokenizer:
     def tokenize(self, src):
         quote = None
         comment = None
+        operator = None
         for c in src:
-            if quote:
+            if quote is not None:
                 if c != quote:
                     self.current += c
                 else:
@@ -69,7 +75,7 @@ class Tokenizer:
                     quote = None
                 continue
 
-            if comment:
+            if comment is not None:
                 if c == '\n':
                     self.line += 1
                 if comment == '\n':
@@ -105,6 +111,19 @@ class Tokenizer:
                 comment = '?'
                 continue
 
+            if operator is not None:
+                if not (c.isalpha() or c.isdigit()):
+                    if (self.current[0] in MULTI_CHAR_OPERATORS
+                        and self.current + c in MULTI_CHAR_OPERATORS[self.current[0]]
+                    ):
+                        self.current += c
+                        operator += 1
+                        continue
+                    else:
+                        self.add_token(self.current, TokenType.SYM)
+                        self.current = ''
+                        operator = None
+                    
             if c in [' ', '\t', '\n', '\r']:
                 self.add_current_token()
                 self.column += 1
@@ -117,7 +136,11 @@ class Tokenizer:
                 assert(self.current == '')
             elif not (c.isalpha() or c.isdigit() or c == '_'):
                 self.add_current_token()
-                self.add_token(c, TokenType.SYM)
+                if c in MULTI_CHAR_OPERATORS:
+                    operator = 1
+                    self.current = c
+                else:
+                    self.add_token(c, TokenType.SYM)
             else:
                 self.current += c
 

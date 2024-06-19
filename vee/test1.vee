@@ -8,8 +8,6 @@ map = {"a": 1, "c": 3} + {'d': false}
 if names.len > 3 {
     print(1 + names.len)
     print('long')
-} else {
-    names = []
 }
 
 func say_hi(name) {
@@ -17,7 +15,7 @@ func say_hi(name) {
 }
 
 for name : names {
-    if type(name) = 'list' {
+    if type(name) == 'list' {
         if name.len > 1 {
             print(say_hi(name[0]))
         }
@@ -35,7 +33,7 @@ class Counter {
     }
 
     func increase() {
-        this.count = this.count + 1
+        this.count += 1
     }
 
     func to_str() {
