@@ -25,10 +25,12 @@ class NodeType(Enum):
     EXPR_LIST = 1
     STMT_LIST = 2
     OPERATOR = 3
-    IDENTIFIER = 4
+    IDENT = 4
     VALUE = 5
+    ARG = 6
     FUNC_CALL = 7
-    FUNCTION = 10
+    FUNC_DEF = 8
+    ARG_LIST = 9
     FOR = 11
     IF = 12
     ELSE = 13
@@ -55,6 +57,7 @@ PRECEDENCE = {
     '/.=': 0,
     '%=': 0,
     ':': 0,
+    '..': 1,
     '==': 1,
     '!=': 1,
     '>': 1,
@@ -66,7 +69,6 @@ PRECEDENCE = {
     '*': 3,
     '/': 3,
     '/.': 3,
-    '..': 10,
     '++': 10,
     '--': 10,
     '**': 10,
@@ -123,7 +125,7 @@ class Parser:
             self.consume()
             return self.parse_expression()
 
-        node = self.parse_factor()
+        node = self.parse_atom()
         while True:
             token = self.peek()
             if (token.type == TokenType.NEL or
@@ -166,19 +168,14 @@ class Parser:
         self.consume(type=TokenType.SYM, value=right)
         return node
 
-    def parse_factor(self):
-        token = self.peek()
-        node = None
-        if token.value in LIST_PAIR:
-            return self.parse_expression_list(token.value)
-        else:
-            node = self.parse_atom()
-        return node
-
     def parse_atom(self):
+        token = self.peek()
+        # TODO distinguish (v1, v2) and (v1)
+        if token.value in LIST_PAIR and token.value != '(':
+            return self.parse_expression_list(token.value)
         token = self.consume()
         if token.type == TokenType.IDN:
-            node = Node(NodeType.IDENTIFIER, token)
+            node = Node(NodeType.IDENT, token)
             # Lookahead to check if it's a function call
             if self.peek_check('('):
                 args = self.parse_expression_list('(')
@@ -207,6 +204,19 @@ class Parser:
         block = self.parse_stmt_list()
         self.consume(value='}')
         return block
+    
+    def parse_args(self):
+        token = self.consume(TokenType.SYM, '(')
+        node = Node(NodeType.ARG_LIST, token)
+        if not self.peek_check(')'):
+            arg = self.consume(type=TokenType.IDN)
+            node.children.append(Node(NodeType.IDENT, arg))
+            while self.peek_check(','):
+                self.consume(TokenType.SYM, ',')
+                arg = self.consume(type=TokenType.IDN)
+                node.children.append(Node(NodeType.IDENT, arg))
+        self.consume(TokenType.SYM, ')')
+        return node
 
     def parse_stmt(self):
         token = self.peek()
@@ -222,14 +232,12 @@ class Parser:
                     node.children.append(self.parse_block())
                 return node
             case 'func':
-                node = Node(NodeType.FUNCTION, token)
+                node = Node(NodeType.FUNC_DEF, token)
                 self.consume(value='func')
                 node.children.append(
                     Node(NodeType.VALUE, self.consume())
                 )  # func name
-                # TODO parse args
-                while self.peek().value != '{':
-                    self.consume()
+                node.children.append(self.parse_args())
                 node.children.append(self.parse_block())
                 return node
             case 'for':
@@ -252,7 +260,7 @@ class Parser:
                 node.children.append(self.parse_block())
                 return node
             case _:
-                return Node(NodeType.TODO, token)
+                raise SyntaxError(f'Unhandled keyword for statement: {token}')
 
     def parse_stmt_list(self):
         root = Node(NodeType.STMT_LIST, None)

@@ -1,6 +1,7 @@
 import sys
 from tokenizer import Tokenizer, print_tokens
 from parser import Parser
+from evaluator import Evaluator
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -15,7 +16,10 @@ if __name__ == "__main__":
         tokenzier = Tokenizer()
         tokens = tokenzier.tokenize(src_file.read())
         # print_tokens(tokens)
-        
+    
         parser = Parser(tokens)
         ast = parser.parse()
         ast.pretty_print(indent='', is_last=True)
+
+        evaluator = Evaluator()
+        evaluator.evaluate(ast)

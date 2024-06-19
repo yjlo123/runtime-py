@@ -105,8 +105,10 @@ class Tokenizer:
                         continue
                     else:
                         # not comment
-                        self.add_current_token()
-                        self.add_token('/', TokenType.SYM)
+                        self.current = '/'
+                        if '/' in MULTI_CHAR_OPERATORS:
+                            operator = 1
+                        comment = None
             elif c == '/':
                 # new comment
                 comment = '?'
@@ -129,7 +131,7 @@ class Tokenizer:
                     self.add_token('(<-|)', TokenType.NEL)
                     self.line += 1
                     self.column = 1
-            elif c in ['\'', '"']:
+            elif c in ['\'', '"', '`']:
                 quote = c
                 assert(self.current == '')
             elif not (c.isalpha() or c.isdigit() or c == '_'):

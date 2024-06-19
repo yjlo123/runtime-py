@@ -1,0 +1,30 @@
+func calculateBMI(weight, height) {
+    return weight /. (height * height)
+}
+
+// Function to categorize BMI
+/*
+func categorizeBMI(bmi) {
+    if (bmi < 18.5) {
+        return "Underweight";
+    } else if (bmi >= 18.5 && bmi < 24.9) {
+        return "Normal weight";
+    } else if (bmi >= 25 && bmi < 29.9) {
+        return "Overweight";
+    } else {
+        return "Obese";
+    }
+}
+*/
+
+// Example usage:
+weight = 70 // in kilograms
+height = 1.75 // in meters
+
+bmi = calculateBMI(weight, height)
+print(bmi)
+
+/*
+let category = categorizeBMI(bmi);
+console.log(`Your BMI is ${bmi.toFixed(2)}, which is considered ${category}.`);
+*/
