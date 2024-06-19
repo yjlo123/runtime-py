@@ -32,8 +32,9 @@ MULTI_CHAR_OPERATORS = {
     '+': {'+=', '++'},
     '-': {'-=', '--'},
     '*': {'*=', '**'},
-    '/': {'/='},
+    '/': {'/=', '/.', '/.='},
     '%': {'%='},
+    '.': {'..'},
 }
 
 class Tokenizer:
@@ -112,17 +113,14 @@ class Tokenizer:
                 continue
 
             if operator is not None:
-                if not (c.isalpha() or c.isdigit()):
-                    if (self.current[0] in MULTI_CHAR_OPERATORS
-                        and self.current + c in MULTI_CHAR_OPERATORS[self.current[0]]
-                    ):
-                        self.current += c
-                        operator += 1
-                        continue
-                    else:
-                        self.add_token(self.current, TokenType.SYM)
-                        self.current = ''
-                        operator = None
+                if (not (c.isalpha() or c.isdigit())
+                    and self.current + c in MULTI_CHAR_OPERATORS[self.current[0]]):
+                    self.current += c
+                    operator += 1
+                    continue
+                self.add_token(self.current, TokenType.SYM)
+                self.current = ''
+                operator = None
                     
             if c in [' ', '\t', '\n', '\r']:
                 self.add_current_token()

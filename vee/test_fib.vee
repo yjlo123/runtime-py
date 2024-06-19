@@ -1,0 +1,11 @@
+func fibonacci(n) {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+n = 10 // The number of Fibonacci numbers to generate
+for i : 0..10 {
+    print(fibonacci(i))
+}
