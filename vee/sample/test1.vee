@@ -13,7 +13,7 @@ if names.len > 3 {
 func say_hi(name) {
     return 'hi ' + name
 }
-
+/*
 for name : names {
     if type(name) == 'list' {
         if name.len > 1 {
@@ -45,3 +45,4 @@ c1 = Counter('test')
 c1.increase()
 c1.increase()
 print(c1.to_str())
+*/

@@ -38,7 +38,9 @@ class Evaluator:
                     right_val = self.evaluate(children[1])
                     match token.value:
                         case '+':
-                            return int(left_val) + int(right_val)
+                            if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
+                                return int(left_val) + int(right_val)
+                            return left_val + right_val
                         case '-':
                             return int(left_val) - int(right_val)
                         case '*':
@@ -48,14 +50,20 @@ class Evaluator:
                         case '/':
                             return left_val // right_val
                         case '.':
-                            # TODO used as getting attr
-                            return float(f'{left_val}.{right_val}')
+                            if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
+                                return float(f'{left_val}.{right_val}')
+                            if right_val == 'len':
+                                return len(left_val)
                         case '<':
                             return float(left_val) < float(right_val)
                         case '<=':
                             return float(left_val) <= float(right_val)
                         case '..':
                             return range(int(left_val), int(right_val))
+                        case '[':
+                            return left_val[int(right_val)]
+                        case ':':
+                            return (left_val, right_val)
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:
