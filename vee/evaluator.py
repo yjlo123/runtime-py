@@ -4,7 +4,10 @@ from parser import Node, NodeType
 
 class Evaluator:
     def __init__(self):
-        self.env = {}
+        self.env = {
+            'true': True,
+            'false': False,
+        }
         self.frames = []
         self.funcs = {}
 
