@@ -3,7 +3,7 @@ bool = true
 
 print(names[1][0])
 
-map = {"a": 1, "c": 3} + {'d': false}
+// map = {"a": 1, "c": 3} + {'d': false}
 
 if names.len > 3 {
     print(1 + names.len)
@@ -13,7 +13,7 @@ if names.len > 3 {
 func say_hi(name) {
     return 'hi ' + name
 }
-/*
+
 for name : names {
     if type(name) == 'list' {
         if name.len > 1 {
@@ -24,6 +24,7 @@ for name : names {
     }
 }
 
+/*
 class Counter {
     name = nil
     count = 0

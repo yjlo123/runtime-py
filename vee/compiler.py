@@ -2,16 +2,14 @@ from tokenizer import TokenType
 from parser import Node, NodeType
 
 
-class Evaluator:
+class Compiler:
     def __init__(self):
-        self.env = {
-            'true': True,
-            'false': False,
-        }
-        self.frames = []
         self.funcs = {}
 
-    def evaluate(self, ast):
+    def gen_stmt_list(self, ast):
+        pass
+
+    def compile(self, ast):
         node_type = ast.type
         token = ast.token
         children = ast.children
