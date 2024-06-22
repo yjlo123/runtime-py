@@ -2,6 +2,7 @@ import sys
 from tokenizer import Tokenizer, print_tokens
 from parser import Parser
 from evaluator import Evaluator
+from compiler import Compiler
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -23,3 +24,8 @@ if __name__ == "__main__":
 
         evaluator = Evaluator()
         evaluator.evaluate(ast)
+
+        compiler = Compiler()
+        compiler.compile(ast)
+        for line in compiler.output:
+            print(line)
