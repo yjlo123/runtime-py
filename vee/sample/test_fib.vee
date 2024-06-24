@@ -6,6 +6,7 @@ func fibonacci(n) {
 }
 
 n = 10 // The number of Fibonacci numbers to generate
+
 for i : 1..n+1 {
     print(fibonacci(i))
 }

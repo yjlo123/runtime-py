@@ -1,5 +1,5 @@
 from enum import Enum
-from tokenizer import TokenType
+from tokenizer import Token, TokenType
 
 
 class Node:
@@ -56,26 +56,33 @@ PRECEDENCE = {
     '/=': 0,
     '/.=': 0,
     '%=': 0,
-    ':': 0,
-    '..': 1,
-    '==': 1,
-    '!=': 1,
-    '>': 1,
-    '>=': 1,
-    '<': 1,
-    '<=': 1,
-    '+': 2,
-    '-': 2,
-    '*': 3,
-    '/': 3,
-    '/.': 3,
+
+    '&&': 1,
+    '||': 1,
+    ':': 2,
+
+    '..': 3,
+    '==': 3,
+    '!=': 3,
+    '>': 3,
+    '>=': 3,
+    '<': 3,
+    '<=': 3,
+
+    '+': 4,
+    '-': 4,
+
+    '*': 5,
+    '/': 5,
+    '/.': 5,
+
     '++': 10,
     '--': 10,
     '**': 10,
     '.': 99,
 }
 
-LEFT_ASSOCIATIVE = {'+', '-', '*', '/'}
+LEFT_ASSOCIATIVE = {'+', '-', '*', '/', '&&', '||'}
 
 LIST_PAIR = {
     '(': ')',
@@ -227,9 +234,17 @@ class Parser:
                 self.consume(value='if')
                 node.children.append(self.parse_expression())
                 node.children.append(self.parse_block())
-                if self.peek_check('else'):
-                    self.consume(value='else')
-                    node.children.append(self.parse_block())
+                while self.peek_check('else'):
+                    token_else = self.consume(value='else')
+                    if self.peek_check('if'):
+                        # case else if
+                        self.consume(value='if')
+                        node.children.append(self.parse_expression())
+                        node.children.append(self.parse_block())
+                    else:
+                        # case else: virtual token (always 'true' for the last else)
+                        node.children.append(Node(NodeType.VALUE, Token('true', TokenType.IDN, token_else.line, token_else.column)))
+                        node.children.append(self.parse_block())
                 return node
             case 'func':
                 node = Node(NodeType.FUNC_DEF, token)

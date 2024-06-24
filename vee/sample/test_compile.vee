@@ -2,8 +2,24 @@ func test(a, b) {
     return a + b * b
 }
 
-b = test(3, 2)
+a = test(3, 2)
+print(a)
+
+b = 5 + 4 * 2
 print(b)
 
-a = 5 + 4 * 2
-print(a)
+
+if a == b {
+    print('euqal')
+} else {
+    print('not equal')
+}
+
+
+if a > b {
+    print('a is larger')
+} else if a < b {
+    print('b is larger')
+} else {
+    print('a is equal to b')
+}

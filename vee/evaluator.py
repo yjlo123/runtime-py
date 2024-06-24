@@ -17,6 +17,11 @@ class Evaluator:
         children = ast.children
         match node_type:
             case NodeType.VALUE:
+                if token.type == TokenType.NUM:
+                    if '.' in token.value:
+                        return float(token.value)
+                    else:
+                        return int(token.value)
                 return token.value
             case NodeType.IDENT:
                 # TODO loop up in stack
@@ -35,20 +40,19 @@ class Evaluator:
                     self.env[left_id] = self.evaluate(children[1])
                 else:
                     left_val = self.evaluate(children[0])
+                    right_val = self.evaluate(children[1])
                     match token.value:
                         case '.':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
                                 return float(f'{left_val}.{right_val}')
                             if children[1].token.value == 'len':
                                 return len(left_val)
-                    
-                    right_val = self.evaluate(children[1])
                     match token.value:
                         case '+':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
                                 return float(left_val) + float(right_val)
-                            # TODO check data type
-                            return str(left_val) + str(right_val)
+                            return left_val + right_val
+                            # TODO int + str
                         case '-':
                             return int(left_val) - int(right_val)
                         case '*':
@@ -73,6 +77,10 @@ class Evaluator:
                             return left_val[int(right_val)]
                         case ':':
                             return (left_val, right_val)
+                        case '&&':
+                            return left_val and right_val
+                        case '||':
+                            return left_val or right_val
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:
@@ -103,11 +111,12 @@ class Evaluator:
                         return result[1]
                     return result
             case NodeType.IF:
-                cond = self.evaluate(children[0])
-                if cond:
-                    return self.evaluate(children[1])
-                elif len(children) > 2:
-                    return self.evaluate(children[2])
+                condition_index = 0
+                while condition_index < len(children) // 2:
+                    cond = self.evaluate(children[condition_index * 2])
+                    if cond:
+                        return self.evaluate(children[condition_index * 2 + 1])
+                    condition_index += 1
             case NodeType.FOR:
                 var = children[0].children[0].token.value
                 val_range = self.evaluate(children[0].children[1])
@@ -120,5 +129,6 @@ class Evaluator:
                     result = self.evaluate(body)
                     if type(result) == tuple and len(result) == 2 and result[0] == 'RETURN_SIG':
                         break
+                self.frames.pop()
                 return result
         
