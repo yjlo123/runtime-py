@@ -5,6 +5,8 @@ print(names[1][0])
 
 // map = {"a": 1, "c": 3} + {'d': false}
 
+print(names)
+print(names.len)
 if names.len > 3 {
     print(1 + names.len)
     print('long')

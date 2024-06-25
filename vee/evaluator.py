@@ -40,13 +40,14 @@ class Evaluator:
                     self.env[left_id] = self.evaluate(children[1])
                 else:
                     left_val = self.evaluate(children[0])
-                    right_val = self.evaluate(children[1])
                     match token.value:
                         case '.':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
-                                return float(f'{left_val}.{right_val}')
+                                return float(f'{left_val}.{self.evaluate(children[1])}')
                             if children[1].token.value == 'len':
                                 return len(left_val)
+                            
+                    right_val = self.evaluate(children[1])
                     match token.value:
                         case '+':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:

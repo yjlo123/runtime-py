@@ -35,6 +35,10 @@ class Compiler:
     def create_value_node(self, token_type, value):
         return Node(NodeType.VALUE, Token(value, token_type, 0, 0))
     
+    def evaluated_identity(self, name):
+        # i -> $i
+        return self.compile(self.create_identity_node(name))
+
     # gen
     def gen_comment(self, msg):
         self.add(f'/ {msg}')
@@ -57,9 +61,9 @@ class Compiler:
         lbl_start = self.get_new_label()
         lbl_end = self.get_new_label()
         self.gen_label(lbl_start)
-        self.gen_compare_jump('jeq', self.compile(self.create_identity_node(var_idx)), end, lbl_end)
-        self.add(f'psh ${list_name} {self.compile(self.create_identity_node(var_idx))}')
-        self.gen_op('add', self.compile(self.create_identity_node(var_idx)), '1', var_idx)
+        self.gen_compare_jump('jeq', self.evaluated_identity(var_idx), end, lbl_end)
+        self.add(f'psh ${list_name} {self.evaluated_identity(var_idx)}')
+        self.gen_op('add', self.evaluated_identity(var_idx), '1', var_idx)
         self.gen_jump(lbl_start)
         self.gen_label(lbl_end)
 
@@ -67,15 +71,46 @@ class Compiler:
         var = self.get_new_var()
         self.gen_let(var, '[]')
         self.add(f'psh ${var} ' + ' '.join([str(self.compile(ast)) for ast in ast_list]))
-        return self.compile(self.create_identity_node(var))
-
-    def gen_for(self, var, range, body_ast):
+        return self.evaluated_identity(var)
+    
+    def gen_for2(self, var, range, body_ast):
+        # gen using `for`
         self.add(f'for {var} {range}')
         self.increase_indent()
         self.compile(body_ast)
         self.decrease_indent()
         self.add('nxt')
 
+    def gen_for(self, var, range, body_ast):
+        # gen without using `for`
+        var_len_ref = self.gen_len(range)
+        lbl_begin = self.get_new_label()
+        lbl_end = self.get_new_label()
+        var_idx = self.get_new_var()
+        self.gen_let(var_idx, '0')
+        self.gen_label(lbl_begin)
+        self.gen_compare_jump('jeq', self.evaluated_identity(var_idx), var_len_ref, lbl_end)
+        self.gen_get(range, self.evaluated_identity(var_idx), var)
+        self.compile(body_ast)
+        self.gen_op('add', self.evaluated_identity(var_idx), '1', var_idx)
+        self.gen_jump(lbl_begin)
+        self.gen_label(lbl_end)
+
+    def gen_get(self, arr, idx, var=None):
+        if var is None:
+            var = self.get_new_var()
+        self.add(f'get {arr} {idx} {var}')
+        return self.evaluated_identity(var)
+
+    def gen_len(self, val):
+        var_len = self.get_new_var()
+        self.add(f'len {val} {var_len}')
+        return self.evaluated_identity(var_len)
+
+    def gen_type(self, val):
+        var_type = self.get_new_var()
+        self.add(f'typ {var_type} {val}')
+        return self.evaluated_identity(var_type)
 
     def gen_compare(self, op, left_val, right_val):
         res = self.get_new_var()
@@ -159,7 +194,7 @@ class Compiler:
                                 return float(f'{left_val}.{right_val}')
                             if children[1].token.value == 'len':
                                 # TODO bult-in len
-                                return len(left_val)
+                                return self.gen_len(left_val)
                     match token.value:
                         case '+':
                             return self.compile(self.gen_op("add", left_val, right_val))
@@ -197,9 +232,9 @@ class Compiler:
                             range_var = self.get_new_var()
                             self.gen_let(range_var, '[]')
                             self.gen_push_range(range_var, left_val, right_val)
-                            return self.compile(self.create_identity_node(range_var))
+                            return self.evaluated_identity(range_var)
                         case '[':
-                            return left_val[int(right_val)]
+                            return self.gen_get(left_val, right_val)
                         case ':':
                             return (left_val, right_val)
                         case _:
@@ -218,12 +253,12 @@ class Compiler:
                 if token.value == 'print':
                     self.gen_func_call('prt', params, builtin=True)
                 elif token.value == 'type':
-                    return str(type(params[0]).__name__)
+                    return self.gen_type(params[0])
                 else:
                     self.gen_func_call(token.value, params)
                     new_var = self.get_new_var()
                     self.gen_let(new_var, '$ret')
-                    return self.compile(self.create_identity_node(new_var))
+                    return self.evaluated_identity(new_var)
             case NodeType.IF:
                 lbl_end_if = self.get_new_label()
                 for cond_index in range(len(children) // 2):
