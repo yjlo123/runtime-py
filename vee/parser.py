@@ -57,24 +57,27 @@ PRECEDENCE = {
     '/.=': 0,
     '%=': 0,
 
-    '&&': 1,
-    '||': 1,
-    ':': 2,
+    '=>': 1,
 
-    '..': 3,
-    '==': 3,
-    '!=': 3,
-    '>': 3,
-    '>=': 3,
-    '<': 3,
-    '<=': 3,
+    '&&': 2,
+    '||': 2,
 
-    '+': 4,
-    '-': 4,
+    ':': 3,
 
-    '*': 5,
-    '/': 5,
-    '/.': 5,
+    '..': 4,
+    '==': 4,
+    '!=': 4,
+    '>': 4,
+    '>=': 4,
+    '<': 4,
+    '<=': 4,
+
+    '+': 5,
+    '-': 5,
+
+    '*': 6,
+    '/': 6,
+    '/.': 6,
 
     '++': 10,
     '--': 10,
@@ -120,11 +123,18 @@ class Parser:
             return False
         return self.peek().value == value
 
+    def peek_over_paren(self, paren='('):
+        closing = LIST_PAIR[paren]
+        count = 1
+        ptr = self.pos
+        while ptr < len(self.tokens):
+            pass
+
     def parse_expression(self, min_precedence=0):
         token = self.peek()
 
         # check if it's nothing to parse as expression next
-        if token.type == TokenType.SYM and token.value in ('}', ']'):
+        if token.type == TokenType.SYM and token.value in ('}', ']', ')'):
             # '{' is a valid starting expression symbol
             return None
 
@@ -201,6 +211,7 @@ class Parser:
         elif token.type in (TokenType.STR, TokenType.NUM):
             return Node(NodeType.VALUE, token)
         elif token.value == '(':
+            # TODO lookahead to check if it's a lambda
             node = self.parse_expression()
             self.consume(value=')')
             return node

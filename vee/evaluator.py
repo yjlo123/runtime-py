@@ -10,6 +10,7 @@ class Evaluator:
         }
         self.frames = []
         self.funcs = {}
+        self.classes = {}
 
     def evaluate(self, ast):
         node_type = ast.type
@@ -132,4 +133,6 @@ class Evaluator:
                         break
                 self.frames.pop()
                 return result
-        
+            case NodeType.CLASS:
+                self.classes[children[0].token.value] = ast
+                pass
