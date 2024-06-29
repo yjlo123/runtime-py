@@ -76,7 +76,7 @@ PRECEDENCE = {
     '.': 99,
 }
 
-LEFT_ASSOCIATIVE = {'+', '-', '*', '/', '&&', '||'}
+LEFT_ASSOCIATIVE = {'+', '-', '*', '/', '&&', '||', '.'}
 
 LIST_PAIR = {
     '(': ')',

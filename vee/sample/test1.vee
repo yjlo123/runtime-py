@@ -35,20 +35,33 @@ class Counter {
     name = nil
     count = 0
 
-    func init(name) {
-        this.name = name
+    func init(new_name) {
+        name = new_name
+    }
+
+    func print_name() {
+        print('abc')
     }
 
     func increase() {
-        this.count += 1
+        count = count + 1
+        this
     }
 
     func to_str() {
-        return this.name + ' ' + this.count
+        this.name + '~' + this.count
     }
 }
 
-c1 = Counter('test')
-c1.increase()
-c1.increase()
+print(Counter)
+
+c1 = Counter('TC')
+c1.print_name()
+
+print(c1.count)
+
+c1.increase().increase()
+
+print(c1.count)
+
 print(c1.to_str())
