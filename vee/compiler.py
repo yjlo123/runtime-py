@@ -237,6 +237,8 @@ class Compiler:
                             return self.gen_get(left_val, right_val)
                         case ':':
                             return (left_val, right_val)
+                        case '=>':
+                            raise SyntaxError(f'lambda is not supported: {token}')
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:

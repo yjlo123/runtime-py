@@ -123,12 +123,19 @@ class Parser:
             return False
         return self.peek().value == value
 
-    def peek_over_paren(self, paren='('):
-        closing = LIST_PAIR[paren]
+    def peek_check_over_paren(self, value, type=None, open_paren='('):
+        close_paren = LIST_PAIR[open_paren]
         count = 1
-        ptr = self.pos
-        while ptr < len(self.tokens):
-            pass
+        ptr = self.pos + 1
+        while ptr < len(self.tokens) and count > 0:
+            if self.tokens[ptr].value == open_paren:
+                count += 1
+            elif self.tokens[ptr].value == close_paren:
+                count -= 1
+            ptr += 1
+        if ptr >= len(self.tokens):
+            return False
+        return self.tokens[ptr].value == value
 
     def parse_expression(self, min_precedence=0):
         token = self.peek()
@@ -190,8 +197,8 @@ class Parser:
         # TODO distinguish (v1, v2) and (v1)
         if token.value in LIST_PAIR and token.value != '(':
             return self.parse_expression_list(token.value)
-        token = self.consume()
         if token.type == TokenType.IDN:
+            token = self.consume()
             node = Node(NodeType.IDENT, token)
             # Lookahead to check if it's a function call
             if self.peek_check('('):
@@ -209,11 +216,16 @@ class Parser:
                     self.consume(type=TokenType.SYM, value=']')
             return node
         elif token.type in (TokenType.STR, TokenType.NUM):
+            token = self.consume()
             return Node(NodeType.VALUE, token)
         elif token.value == '(':
-            # TODO lookahead to check if it's a lambda
-            node = self.parse_expression()
-            self.consume(value=')')
+            # lookahead to check if it's a lambda
+            if self.peek_check_over_paren('=>'):
+                node = self.parse_args()
+            else:
+                token = self.consume(value='(')
+                node = self.parse_expression()
+                self.consume(value=')')
             return node
         raise SyntaxError(f'Unexpected token: {token}')
 

@@ -1,4 +1,4 @@
-from tokenizer import TokenType
+from tokenizer import Token, TokenType
 from parser import Node, NodeType
 
 
@@ -9,7 +9,6 @@ class Evaluator:
             'false': False,
         }
         self.frames = []
-        self.funcs = {}
         self.classes = {}
 
     def evaluate(self, ast):
@@ -30,7 +29,7 @@ class Evaluator:
                     return self.frames[-1][token.value]
                 return self.env[token.value]
             case NodeType.FUNC_DEF:
-                self.funcs[children[0].token.value] = ast
+                self.env[children[0].token.value] = ast
             case NodeType.RETURN:
                 result = self.evaluate(children[0])
                 self.frames.pop()
@@ -47,6 +46,12 @@ class Evaluator:
                                 return float(f'{left_val}.{self.evaluate(children[1])}')
                             if children[1].token.value == 'len':
                                 return len(left_val)
+                        case '=>':
+                            func_node = Node(NodeType.FUNC_DEF, token)
+                            func_node.children.append(Node(NodeType.IDENT, Token('(lambda)', TokenType.IDN, token.line, token.column)))
+                            func_node.children.append(children[0])
+                            func_node.children.append(children[1])
+                            return func_node
                             
                     right_val = self.evaluate(children[1])
                     match token.value:
@@ -103,7 +108,7 @@ class Evaluator:
                 elif token.value == 'type':
                     return str(type(params[0]).__name__)
                 else:
-                    func = self.funcs[token.value]
+                    func = self.env[token.value]
                     frame = {}
                     for i, arg in enumerate(func.children[1].children):
                         frame[arg.token.value] = params[i]
