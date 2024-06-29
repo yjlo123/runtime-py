@@ -39,15 +39,6 @@ class NodeType(Enum):
     TODO = 999
 
 
-KEY_WORDS = [
-    'class',
-    'func',
-    'for',
-    'if',
-    'else',
-    'return',
-]
-
 PRECEDENCE = {
     '=': 0,
     '+=': 0,
@@ -227,6 +218,8 @@ class Parser:
                 node = self.parse_expression()
                 self.consume(value=')')
             return node
+        elif token.value == 'if':
+            return self.parse_if(token)
         raise SyntaxError(f'Unexpected token: {token}')
 
     def parse_block(self):
@@ -248,27 +241,28 @@ class Parser:
         self.consume(TokenType.SYM, ')')
         return node
 
+    def parse_if(self, token):
+        node = Node(NodeType.IF, token)
+        self.consume(value='if')
+        node.children.append(self.parse_expression())
+        node.children.append(self.parse_block())
+        while self.peek_check('else'):
+            token_else = self.consume(value='else')
+            if self.peek_check('if'):
+                # case else if
+                self.consume(value='if')
+                node.children.append(self.parse_expression())
+                node.children.append(self.parse_block())
+            else:
+                # case else: virtual token (always 'true' for the last else)
+                node.children.append(Node(NodeType.VALUE, Token('true', TokenType.IDN, token_else.line, token_else.column)))
+                node.children.append(self.parse_block())
+        return node
+
     def parse_stmt(self):
         token = self.peek()
         stmt_type = token.value
         match stmt_type:
-            case 'if':
-                node = Node(NodeType.IF, token)
-                self.consume(value='if')
-                node.children.append(self.parse_expression())
-                node.children.append(self.parse_block())
-                while self.peek_check('else'):
-                    token_else = self.consume(value='else')
-                    if self.peek_check('if'):
-                        # case else if
-                        self.consume(value='if')
-                        node.children.append(self.parse_expression())
-                        node.children.append(self.parse_block())
-                    else:
-                        # case else: virtual token (always 'true' for the last else)
-                        node.children.append(Node(NodeType.VALUE, Token('true', TokenType.IDN, token_else.line, token_else.column)))
-                        node.children.append(self.parse_block())
-                return node
             case 'func':
                 node = Node(NodeType.FUNC_DEF, token)
                 self.consume(value='func')
@@ -303,7 +297,7 @@ class Parser:
     def parse_stmt_list(self):
         ast = Node(NodeType.STMT_LIST, None)
         while self.pos < len(self.tokens):
-            if self.peek().type == TokenType.KEY:
+            if self.peek().type == TokenType.KEY and self.peek().value != 'if':
                 # statement
                 ast.children.append(self.parse_stmt())
             elif self.peek().type == TokenType.NEL:

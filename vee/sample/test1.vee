@@ -7,10 +7,15 @@ print(names[1][0])
 
 print(names)
 print(names.len)
-if names.len > 3 {
+len = if names.len > 3 {
     print(1 + names.len)
     print('long')
+    names.len + 10
+} else {
+    names.len + 100
 }
+
+print(len)
 
 func say_hi(name) {
     return 'hi ' + name
