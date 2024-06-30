@@ -19,6 +19,10 @@ class ClassInstance:
     def __repr__(self):
         return f'ClassInstant-{self.class_name}'
 
+class ReturnException(Exception):
+    def __init__(self, value):
+        self.value = value
+
 class Evaluator:
     def __init__(self):
         self.env = {
@@ -53,11 +57,16 @@ class Evaluator:
                 result = self.evaluate(children[0], scope)
                 if not scope:
                     self.frames.pop()
-                return ('RETURN_SIG', result)
+                raise ReturnException(result)
             case NodeType.OPERATOR:
                 if token.value == '=':
-                    left_id = children[0].token.value
-                    env[left_id] = self.evaluate(children[1], scope)
+                    left = children[0]
+                    right_val = self.evaluate(children[1], scope)
+                    if left.type == NodeType.OPERATOR and left.token.value == '.':
+                        instance = self.evaluate(left.children[0])
+                        instance.data[left.children[1].token.value] = right_val
+                    else:
+                        env[left.token.value] = right_val
                 else:
                     left_val = self.evaluate(children[0], scope)
                     match token.value:
@@ -124,10 +133,11 @@ class Evaluator:
                 return [self.evaluate(expr, scope) for expr in children]
             case NodeType.STMT_LIST:
                 result = None
-                for stmt in ast.children:
-                    result = self.evaluate(stmt, scope)
-                    if type(result) == tuple and len(result) == 2 and result[0] == 'RETURN_SIG':
-                        return result
+                try:
+                    for stmt in ast.children:
+                        result = self.evaluate(stmt, scope)
+                except ReturnException as e:
+                    return e.value
                 return result
             case NodeType.FUNC_CALL:
                 params = []
@@ -140,16 +150,15 @@ class Evaluator:
                 else:
                     func = env[token.value]
                     if isinstance(func, ClassDef):
+                        # class constructor
                         return self.init_class_instance(func, params)
                     else:
+                        # user defined function call
                         frame = {}
                         for i, arg in enumerate(func.children[1].children):
                             frame[arg.token.value] = params[i]
                         self.frames.append(frame)
-                        result = self.evaluate(func.children[2], scope)
-                        if type(result) == tuple and len(result) == 2 and result[0] == 'RETURN_SIG':
-                            return result[1]
-                        return result
+                        return self.evaluate(func.children[2], scope)
             case NodeType.IF:
                 condition_index = 0
                 while condition_index < len(children) // 2:
@@ -167,8 +176,6 @@ class Evaluator:
                 for val in val_range:
                     this_frame[var] = val
                     result = self.evaluate(body, scope)
-                    if type(result) == tuple and len(result) == 2 and result[0] == 'RETURN_SIG':
-                        break
                 self.frames.pop()
                 return result
             case NodeType.CLASS:
