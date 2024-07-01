@@ -25,6 +25,19 @@ class ReturnException(Exception):
     def __init__(self, value):
         self.value = value
 
+class Environment:
+    def __init__(self, env, current):
+        self._global = env
+        self._cur_scope = current or {}
+
+    def get(self, name):
+        if name in self._cur_scope:
+            return self._cur_scope[name]
+        return self._global[name]
+    
+    def set(self, name, value):
+        self._global[name] = value
+
 class Evaluator:
     def __init__(self):
         self.env = {
@@ -39,7 +52,7 @@ class Evaluator:
         node_type = ast.type
         token = ast.token
         children = ast.children
-        env = self.env if not scope else scope
+        env = Environment(self.env, scope)
         match node_type:
             case NodeType.VALUE:
                 if token.type == TokenType.NUM:
@@ -52,9 +65,9 @@ class Evaluator:
                 # TODO loop up in stack
                 if self.frames and token.value in self.frames[-1]:
                     return self.frames[-1][token.value]
-                return env[token.value]
+                return env.get(token.value)
             case NodeType.FUNC_DEF:
-                env[children[0].token.value] = ast
+                env.set(children[0].token.value, ast)
             case NodeType.RETURN:
                 result = self.evaluate(children[0], scope)
                 if not scope:
@@ -68,7 +81,7 @@ class Evaluator:
                         instance = self.evaluate(left.children[0], scope)
                         instance.data[left.children[1].token.value] = right_val
                     else:
-                        env[left.token.value] = right_val
+                        env.set(left.token.value, right_val)
                 else:
                     left_val = self.evaluate(children[0], scope)
                     match token.value:
@@ -119,6 +132,8 @@ class Evaluator:
                             return float(left_val) >= float(right_val)
                         case '==':
                             return left_val == right_val
+                        case '!=':
+                            return left_val != right_val
                         case '..':
                             return range(int(left_val), int(right_val))
                         case '[':
@@ -150,7 +165,7 @@ class Evaluator:
                 elif token.value == 'type':
                     return str(type(params[0]).__name__)
                 else:
-                    func = env[token.value]
+                    func = env.get(token.value)
                     if isinstance(func, ClassDef):
                         # class constructor
                         return self.init_class_instance(func, params)
@@ -181,7 +196,7 @@ class Evaluator:
                 self.frames.pop()
                 return result
             case NodeType.CLASS:
-                env[children[0].token.value] = self.eval_class_def(ast)
+                env.set(children[0].token.value, self.eval_class_def(ast))
 
     def eval_class_def(self, ast):
         data = ClassDef(ast.children[0].token.value)
