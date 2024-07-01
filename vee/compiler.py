@@ -101,7 +101,10 @@ class Compiler:
             var = self.get_new_var()
         self.add(f'get {arr} {idx} {var}')
         return self.evaluated_identity(var)
-
+    
+    def gen_put(self, arr, idx, val):
+        self.add(f'put {arr} {idx} {val}')
+    
     def gen_len(self, val):
         var_len = self.get_new_var()
         self.add(f'len {val} {var_len}')
@@ -133,8 +136,8 @@ class Compiler:
     def gen_func_call(self, func_name, *args, builtin=False):
         self.add(f'{"" if builtin else "cal "}{func_name} ' + ' '.join(str(arg) for arg in args[0]) if args else '')
 
-    def gen_return(self, expr_ast):
-        self.add(f'ret {self.compile(expr_ast)}')
+    def gen_return(self, val):
+        self.add(f'ret {val}')
 
     def gen_stmt_list(self, ast):
         for child in ast.children:
@@ -181,20 +184,28 @@ class Compiler:
                 self.funcs[children[0].token.value] = ast
                 self.gen_func_def(children[0].token.value, children[1], children[2])
             case NodeType.RETURN:
-                self.gen_return(children[0])
+                self.gen_return(self.compile(children[0]))
             case NodeType.OPERATOR:
+                left, right = ast.children[0], ast.children[1]
+                right_val = self.compile(right)
                 if token.value == '=':
-                    self.gen_let(ast.children[0].token.value, self.compile(ast.children[1]))
+                    if left.token.type == TokenType.SYM and left.token.value == '.':
+                        left_val = left.children[0].token.value
+                        self.gen_put(self.evaluated_identity('_data') if left_val == 'this' else self.evaluated_identity(left_val), left.children[1].token.value, right_val)
+                    else:
+                        self.gen_let(left.token.value, right_val)
                 else:
                     left_val = self.compile(children[0])
-                    right_val = self.compile(children[1])
                     match token.value:
                         case '.':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
                                 return float(f'{left_val}.{right_val}')
-                            if children[1].token.value == 'len':
+                            elif children[1].token.value == 'len':
                                 # TODO bult-in len
                                 return self.gen_len(left_val)
+                            else:
+                                # instance property
+                                return self.gen_get(left_val, right.token.value)
                     match token.value:
                         case '+':
                             return self.compile(self.gen_op("add", left_val, right_val))
@@ -281,6 +292,30 @@ class Compiler:
                 val_range = self.compile(children[0].children[1])
                 body = children[1]
                 self.gen_for(var, val_range, body)
+            case NodeType.CLASS:
+                class_name = children[0].token.value
+                self.add(f'def {class_name}')
+                self.increase_indent()
+                var_data = '_data'
+                self.gen_let(var_data, '{}')
+                self.gen_put(self.evaluated_identity(var_data), '__class', class_name)
+                for stmt in children[1].children:
+                    if stmt.type == NodeType.OPERATOR and stmt.token.value == '=':
+                        left = stmt.children[0].token.value
+                        right = self.compile(stmt.children[1])
+                        self.add(f'put {self.evaluated_identity(var_data)} {left} {right}')
+                    if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value == 'init':
+                        # gen init
+                        for i, arg in enumerate(stmt.children[1].children):
+                            self.add(f'let _{arg.token.value} ${i}')
+                            self.func_var.add(arg.token.value)
+                        self.compile(stmt.children[2])
+                self.gen_return(self.evaluated_identity(var_data))
+                self.decrease_indent()
+                self.add(f'end')
+                self.func_var = set()
+                # TODO define methods
+
         
     def compile_ast(self, ast):
         self.gen_comment('==== runtime script ====')

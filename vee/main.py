@@ -25,7 +25,7 @@ if __name__ == "__main__":
         evaluator = Evaluator()
         evaluator.evaluate(ast)
 
-        # compiler = Compiler()
-        # compiler.compile_ast(ast)
-        # for line in compiler.output:
-        #     print(line)
+        compiler = Compiler()
+        compiler.compile_ast(ast)
+        for line in compiler.output:
+            print(line)

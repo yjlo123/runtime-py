@@ -1,0 +1,40 @@
+class Point {
+    x = 0
+    y = 0
+}
+
+p1 = Point()
+
+print(p1.x)
+
+
+class Person {
+    name = ''
+
+    func init(name0) {
+        this.name = name0
+    }
+}
+
+person = Person('siwei')
+
+print(person.name)
+
+class Node {
+    value = 0
+    left = nil
+    right = nil
+
+    func init(v) {
+        this.value = v
+    }
+}
+
+node_1 = Node(0)
+node_1.value = 8
+print(node_1.value)
+
+node_2 = Node(10)
+node_1.right = node_2
+
+print(node_1.right.value)

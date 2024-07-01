@@ -12,12 +12,14 @@ class ClassDef:
         return f'ClassDef-{self.name}'
 
 class ClassInstance:
-    def __init__(self, class_name):
-        self.class_name = class_name
+    def __init__(self, class_def):
+        self.class_name = class_def.name
+        self.attribute_keys = class_def.attributes.keys()
         self.data = {}
     
     def __repr__(self):
-        return f'ClassInstant-{self.class_name}'
+        data = ",".join(str(k)+"="+str(self.data[k]) for k in self.attribute_keys)
+        return f'{self.class_name}[{data}]'
 
 class ReturnException(Exception):
     def __init__(self, value):
@@ -63,7 +65,7 @@ class Evaluator:
                     left = children[0]
                     right_val = self.evaluate(children[1], scope)
                     if left.type == NodeType.OPERATOR and left.token.value == '.':
-                        instance = self.evaluate(left.children[0])
+                        instance = self.evaluate(left.children[0], scope)
                         instance.data[left.children[1].token.value] = right_val
                     else:
                         env[left.token.value] = right_val
@@ -195,26 +197,32 @@ class Evaluator:
         return data
 
     def init_class_instance(self, class_def, params):
-        init_func = class_def.methods['init']
-        instance = ClassInstance(class_def.name)
+        instance = ClassInstance(class_def)
+        # init attributes
         for k, v in class_def.attributes.items():
             instance.data[k] = v
         instance.data['this'] = instance
 
-        # TODO constructor params in scope but not in instance data
-        for i, arg in enumerate(init_func.children[1].children):
-            instance.data[arg.token.value] = params[i]
-
-        self.evaluate(init_func.children[2], scope=instance.data)
+        # call init method (optional)
+        if 'init' in class_def.methods:
+            self.class_method_run(class_def, instance, 'init', params)
         return instance
 
     def class_method_call(self, class_instance, func_call):
         class_def = self.env[class_instance.class_name]
         method_name = func_call.token.value
-        method = class_def.methods[method_name]
         params = []
         if func_call.children:
             params = self.evaluate(func_call.children[0])
-            # TODO add params to env
-        return self.evaluate(method.children[2], scope=class_instance.data)
+        return self.class_method_run(class_def, class_instance, method_name, params)
 
+    def class_method_run(self, class_def, instance, method_name, params):
+        method = class_def.methods[method_name]
+        args = method.children[1].children
+        method_body = method.children[2]
+
+        for i, arg in enumerate(args):
+            # TODO add method args to frame instead
+            instance.data[arg.token.value] = params[i]
+
+        return self.evaluate(method_body, scope=instance.data)
