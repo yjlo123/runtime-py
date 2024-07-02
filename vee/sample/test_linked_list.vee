@@ -1,6 +1,7 @@
 class Node {
     value = nil
     next = nil
+    prev = nil
 
     func init(val) {
         this.value = val
@@ -44,12 +45,24 @@ class List {
             this.tail = node
         } else {
             this.tail.next = node
+            node.prev = this.tail
             this.tail = node
         }
         this
     }
 
+    func pop() {
+        node = nil
+        if this.tail != nil {
+            node = this.tail
+            this.tail = this.tail.prev
+            this.tail.next = nil
+        }
+        node
+    }
+
     func print_me() {
+        // Caution: not loop safe
         if this.head != nil {
             this.head.print_me()
         }
@@ -59,4 +72,9 @@ class List {
 list = List()
 list.print_me()
 list.push(Node(3)).push(Node(2)).push(Node(8)).push(Node(6))
+list.print_me()
+
+list.pop()
+list.pop()
+
 list.print_me()

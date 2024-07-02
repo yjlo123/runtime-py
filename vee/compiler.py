@@ -140,8 +140,18 @@ class Compiler:
         self.add(f'ret {val}')
 
     def gen_stmt_list(self, ast):
-        for child in ast.children:
-            self.compile(child)
+        for i, child in enumerate(ast.children):
+            if i == len(ast.children) - 1:
+                # last
+                if child.type == NodeType.IDENT:
+                    self.gen_return(self.evaluated_identity(child.token.value))
+                elif child.type == NodeType.VALUE:
+                    self.gen_return(self.compile(child.token.value))
+                else:
+                    self.compile(child)
+            else:
+                self.compile(child)
+        
         
     def gen_func_def(self, name, args, body):
         for arg in args.children:
@@ -179,6 +189,8 @@ class Compiler:
             case NodeType.IDENT:
                 if token.value in self.func_var:
                     return f'$_{token.value}'
+                elif token.value == 'this':
+                    return '$_data'
                 return f'${token.value}'
             case NodeType.FUNC_DEF:
                 self.funcs[children[0].token.value] = ast
@@ -186,35 +198,56 @@ class Compiler:
             case NodeType.RETURN:
                 self.gen_return(self.compile(children[0]))
             case NodeType.OPERATOR:
-                left, right = ast.children[0], ast.children[1]
-                right_val = self.compile(right)
+                left, right = children[0], children[1]
+                right_val = None
                 if token.value == '=':
+                    right_val = self.compile(right)
                     if left.token.type == TokenType.SYM and left.token.value == '.':
-                        left_val = left.children[0].token.value
-                        self.gen_put(self.evaluated_identity('_data') if left_val == 'this' else self.evaluated_identity(left_val), left.children[1].token.value, right_val)
+                        dot_left_val = self.compile(left.children[0])
+                        dot_right_val = left.children[1].token.value
+                        self.gen_put(dot_left_val, dot_right_val, right_val)
                     else:
                         self.gen_let(left.token.value, right_val)
                 else:
-                    left_val = self.compile(children[0])
+                    left_val = self.compile(left)
                     match token.value:
                         case '.':
-                            if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
+                            if left.token.type==TokenType.NUM and right.token.type==TokenType.NUM:
+                                right_val = self.compile(right)
                                 return float(f'{left_val}.{right_val}')
                             elif children[1].token.value == 'len':
-                                # TODO bult-in len
+                                # bult-in len
                                 return self.gen_len(left_val)
                             else:
-                                # instance property
-                                return self.gen_get(left_val, right.token.value)
+                                if right.type == NodeType.IDENT:
+                                    # instance property
+                                    return self.gen_get(left_val, right.token.value)
+                                elif right.type == NodeType.FUNC_CALL:
+                                    # instance method call
+                                    #  find class name for the instance
+                                    instance_ref = left_val
+                                    class_name_var = self.get_new_var()
+                                    self.gen_get(instance_ref, '__class', class_name_var)
+                                    self.gen_op('add', self.evaluated_identity(class_name_var), ':', res_var=class_name_var)
+                                    self.gen_op('add', self.evaluated_identity(class_name_var), right.token.value, res_var=class_name_var)
+                                    method_full_name = f'{self.evaluated_identity(class_name_var)}'
+                                    params = self.compile(right.children[0])
+                                    params = [instance_ref] + params
+                                    self.gen_func_call(method_full_name, params)
+                                    new_var = self.get_new_var()
+                                    self.gen_let(new_var, '$ret')
+                                    return self.evaluated_identity(new_var)
+                    if right_val is None:
+                        right_val = self.compile(right)
                     match token.value:
                         case '+':
-                            return self.compile(self.gen_op("add", left_val, right_val))
+                            return self.compile(self.gen_op('add', left_val, right_val))
                         case '-':
-                            return self.compile(self.gen_op("sub", left_val, right_val))
+                            return self.compile(self.gen_op('sub', left_val, right_val))
                         case '*':
-                            return self.compile(self.gen_op("mul", left_val, right_val))
+                            return self.compile(self.gen_op('mul', left_val, right_val))
                         case '/.':
-                            return self.compile(self.gen_op("div", left_val, right_val))
+                            return self.compile(self.gen_op('div', left_val, right_val))
                         case '/':
                             return left_val // right_val
                         case '<':
@@ -233,6 +266,8 @@ class Compiler:
                             return self.compile(self.gen_compare('jgt', sum_res, 0))
                         case '==':
                             return self.compile(self.gen_compare('jeq', left_val, right_val))
+                        case '!=':
+                            return self.compile(self.gen_compare('jne', left_val, right_val))
                         case '&&':
                             sum_res = self.compile(self.gen_op("add", left_val, right_val))
                             return self.compile(self.gen_compare('jgt', sum_res, 1))
@@ -294,6 +329,7 @@ class Compiler:
                 self.gen_for(var, val_range, body)
             case NodeType.CLASS:
                 class_name = children[0].token.value
+                # gen contructor
                 self.add(f'def {class_name}')
                 self.increase_indent()
                 var_data = '_data'
@@ -301,6 +337,7 @@ class Compiler:
                 self.gen_put(self.evaluated_identity(var_data), '__class', class_name)
                 for stmt in children[1].children:
                     if stmt.type == NodeType.OPERATOR and stmt.token.value == '=':
+                        # gen attribute
                         left = stmt.children[0].token.value
                         right = self.compile(stmt.children[1])
                         self.add(f'put {self.evaluated_identity(var_data)} {left} {right}')
@@ -314,7 +351,23 @@ class Compiler:
                 self.decrease_indent()
                 self.add(f'end')
                 self.func_var = set()
-                # TODO define methods
+                # gen methods
+                for stmt in children[1].children:
+                    if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value != 'init':
+                        method_name = stmt.children[0].token.value
+                        self.add(f'def {class_name}:{method_name}')
+                        self.increase_indent()
+
+                        self.add(f'let _data $0')
+                        for i, arg in enumerate(stmt.children[1].children):
+                            self.add(f'let _{arg.token.value} ${i+1}')
+                            self.func_var.add(arg.token.value)
+    
+                        self.compile(stmt.children[2])
+                        self.decrease_indent()
+                        self.add(f'end')
+                        self.func_var = set()
+
 
         
     def compile_ast(self, ast):

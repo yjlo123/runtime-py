@@ -1,9 +1,15 @@
 class Point {
     x = 0
     y = 0
+
+    func set_values(xx, yy) {
+        this.x = xx
+        this.y = yy
+    }
 }
 
 p1 = Point()
+p1.set_values(23, 76)
 
 print(p1.x)
 
@@ -14,11 +20,16 @@ class Person {
     func init(name0) {
         this.name = name0
     }
+
+    func greet() {
+        print("Hi " + this.name)
+    }
 }
 
 person = Person('siwei')
 
 print(person.name)
+person.greet()
 
 class Node {
     value = 0
