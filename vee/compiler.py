@@ -96,6 +96,16 @@ class Compiler:
         self.gen_jump(lbl_begin)
         self.gen_label(lbl_end)
 
+    def gen_while(self, cond_ast, body_ast):
+        lbl_begin = self.get_new_label()
+        lbl_end = self.get_new_label()
+        self.gen_label(lbl_begin)
+        cond_res = self.compile(cond_ast)
+        self.gen_compare_jump('jne', cond_res, '1', lbl_end)
+        self.compile(body_ast)
+        self.gen_jump(lbl_begin)
+        self.gen_label(lbl_end)
+
     def gen_get(self, arr, idx, var=None):
         if var is None:
             var = self.get_new_var()
@@ -207,7 +217,8 @@ class Compiler:
                         dot_right_val = left.children[1].token.value
                         self.gen_put(dot_left_val, dot_right_val, right_val)
                     else:
-                        self.gen_let(left.token.value, right_val)
+                        prefix = '_' if left.token.value in self.func_var else ''
+                        self.gen_let(prefix + left.token.value, right_val)
                 else:
                     left_val = self.compile(left)
                     match token.value:
@@ -249,7 +260,9 @@ class Compiler:
                         case '/.':
                             return self.compile(self.gen_op('div', left_val, right_val))
                         case '/':
-                            return left_val // right_val
+                            return self.compile(self.gen_op('div', left_val, right_val))
+                        case '%':
+                            return self.compile(self.gen_op('mod', left_val, right_val))
                         case '<':
                             return self.compile(self.gen_compare('jlt', left_val, right_val))
                         case '<=':
@@ -328,7 +341,7 @@ class Compiler:
                 body = children[1]
                 self.gen_for(var, val_range, body)
             case NodeType.WHILE:
-                raise Exception("TODO compile while")
+                self.gen_while(children[0], children[1])
             case NodeType.CLASS:
                 class_name = children[0].token.value
                 # gen contructor
