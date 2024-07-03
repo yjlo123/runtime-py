@@ -327,6 +327,8 @@ class Compiler:
                 val_range = self.compile(children[0].children[1])
                 body = children[1]
                 self.gen_for(var, val_range, body)
+            case NodeType.WHILE:
+                raise Exception("TODO compile while")
             case NodeType.CLASS:
                 class_name = children[0].token.value
                 # gen contructor

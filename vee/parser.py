@@ -32,11 +32,11 @@ class NodeType(Enum):
     FUNC_DEF = 8
     ARG_LIST = 9
     FOR = 11
-    IF = 12
-    ELSE = 13
-    RETURN = 14
-    CLASS = 15
-    TODO = 999
+    WHILE = 12
+    IF = 13
+    ELSE = 14
+    RETURN = 15
+    CLASS = 16
 
 
 PRECEDENCE = {
@@ -69,6 +69,7 @@ PRECEDENCE = {
     '*': 6,
     '/': 6,
     '/.': 6,
+    '%': 6,
 
     '++': 10,
     '--': 10,
@@ -185,7 +186,6 @@ class Parser:
 
     def parse_atom(self):
         token = self.peek()
-        # TODO distinguish (v1, v2) and (v1)
         if token.value in LIST_PAIR and token.value != '(':
             return self.parse_expression_list(token.value)
         if token.type == TokenType.IDN:
@@ -265,27 +265,27 @@ class Parser:
         match stmt_type:
             case 'func':
                 node = Node(NodeType.FUNC_DEF, token)
-                self.consume(value='func')
+                self.consume(value=stmt_type)
                 node.children.append(
                     Node(NodeType.VALUE, self.consume())
                 )  # func name
                 node.children.append(self.parse_args())
                 node.children.append(self.parse_block())
                 return node
-            case 'for':
-                node = Node(NodeType.FOR, token)
-                self.consume(value='for')
+            case 'for' | 'while':
+                node = Node(NodeType.FOR if stmt_type == 'for' else NodeType.WHILE, token)
+                self.consume(value=stmt_type)
                 node.children.append(self.parse_expression())
                 node.children.append(self.parse_block())
                 return node
             case 'return':
                 node = Node(NodeType.RETURN, token)
-                self.consume(value='return')
+                self.consume(value=stmt_type)
                 node.children.append(self.parse_expression())
                 return node
             case 'class':
                 node = Node(NodeType.CLASS, token)
-                self.consume(value='class')
+                self.consume(value=stmt_type)
                 node.children.append(
                     Node(NodeType.VALUE, self.consume())
                 )  # class name
