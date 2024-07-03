@@ -1,3 +1,8 @@
+/*
+    2. Add Two Numbers
+    https://blog.siwei.dev/leetcode/2-add-two-numbers/
+*/
+
 class ListNode {
     val = nil
     next = nil
@@ -11,11 +16,11 @@ class ListNode {
         this.next
     }
 
-    func to_str() {
+    func toStr() {
         if this.next == nil {
             return this.val
         }
-        return this.val + ',' + this.next.to_str()
+        return this.val + ',' + this.next.toStr()
     }
 }
 
@@ -54,9 +59,9 @@ l1.setNext(ListNode(4)).setNext(ListNode(5))
 l2 = ListNode(5)
 l2.setNext(ListNode(6)).setNext(ListNode(8))
 
-print(l1.to_str())
-print(l2.to_str())
+print(l1.toStr())
+print(l2.toStr())
 
 res = addTwoNumbers(l1, l2)
 
-print(res.to_str())
+print(res.toStr())
