@@ -8,7 +8,7 @@ class Compiler:
         self.output = []
         self.var_count = 0
         self.label_count = 0
-        self.func_var = set()
+        self.func_var = None
         self.indent = ''
 
     # utils
@@ -156,6 +156,7 @@ class Compiler:
         return last_res
 
     def gen_func_def(self, name, args, body):
+        self.func_var = set()
         for arg in args.children:
             self.func_var.add(arg.token.value)
         self.add(f'def {name}')
@@ -167,7 +168,7 @@ class Compiler:
             self.gen_return(last_res)
         self.decrease_indent()
         self.add(f'end')
-        self.func_var = set()
+        self.func_var = None
 
     def compile(self, ast):
         node_type = ast.type
@@ -191,7 +192,7 @@ class Compiler:
                         return int(token.value)
                 return token.value
             case NodeType.IDENT:
-                if token.value in self.func_var:
+                if self.func_var and token.value in self.func_var:
                     return f'$_{token.value}'
                 elif token.value == 'this':
                     return '$_data'
@@ -211,7 +212,12 @@ class Compiler:
                         dot_right_val = left.children[1].token.value
                         self.gen_put(dot_left_val, dot_right_val, right_val)
                     else:
-                        prefix = '_' if left.token.value in self.func_var else ''
+                        prefix = ''
+                        if self.func_var is not None:
+                            # in function scope, define all new var as local
+                            if left.token.value not in self.func_var:
+                                self.func_var.add(left.token.value)
+                            prefix = '_'
                         self.gen_let(prefix + left.token.value, right_val)
                 else:
                     left_val = self.compile(left)
@@ -352,6 +358,7 @@ class Compiler:
                         self.add(f'put {self.evaluated_identity(var_data)} {left} {right}')
                     if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value == 'init':
                         # gen init
+                        self.func_var = set()
                         for i, arg in enumerate(stmt.children[1].children):
                             self.add(f'let _{arg.token.value} ${i}')
                             self.func_var.add(arg.token.value)
@@ -359,7 +366,7 @@ class Compiler:
                 self.gen_return(self.evaluated_identity(var_data))
                 self.decrease_indent()
                 self.add(f'end')
-                self.func_var = set()
+                self.func_var = None
                 # gen methods
                 for stmt in children[1].children:
                     if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value != 'init':
@@ -370,6 +377,7 @@ class Compiler:
                         self.increase_indent()
 
                         self.add(f'let _data $0')
+                        self.func_var = set()
                         for i, arg in enumerate(method_args):
                             self.add(f'let _{arg.token.value} ${i+1}')
                             self.func_var.add(arg.token.value)
@@ -379,7 +387,7 @@ class Compiler:
                             self.gen_return(last_res)
                         self.decrease_indent()
                         self.add(f'end')
-                        self.func_var = set()
+                        self.func_var = None
 
 
         

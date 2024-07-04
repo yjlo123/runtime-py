@@ -28,14 +28,17 @@ class ReturnException(Exception):
 class Environment:
     def __init__(self, env, current, frames):
         self._global = env
-        self._cur_scope = current or {}
+        self._cur_scope = current
         self._frames = frames
 
     def get(self, name):
+        # check function scope
         if self._frames and name in self._frames[-1]:
             return self._frames[-1][name]
-        if name in self._cur_scope:
+        # check instance scope
+        if self._cur_scope is not None and name in self._cur_scope:
             return self._cur_scope[name]
+        # check global
         if name not in self._global:
             raise Exception(f'Undefined variable {name}')
         return self._global[name]
@@ -44,11 +47,17 @@ class Environment:
         self._global[name] = value
 
     def set(self, name, value):
-        if self._frames and name in self._frames[-1]:
+        if self._cur_scope is None and len(self._frames) > 0:
+            # function scope
             self._frames[-1][name] = value
-        elif name in self._cur_scope:
+        elif self._cur_scope is not None and len(self._frames) > 0 and name in self._frames[-1]:
+            # method local overriding instance scope
+            self._frames[-1][name] = value
+        elif self._cur_scope is not None and name in self._cur_scope:
+            # instance scope
             self._cur_scope[name] = value
         else:
+            # global
             self._global[name] = value
     
     def print_env(self):
