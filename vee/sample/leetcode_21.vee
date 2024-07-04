@@ -2,27 +2,7 @@
     21. Merge Two Sorted Lists
     https://blog.siwei.dev/leetcode/21-merge-two-sorted-lists/
 */
-
-class ListNode {
-    val = nil
-    next = nil
-
-    func init(val) {
-        this.val = val
-    }
-
-    func setNext(node) {
-        this.next = node
-        this.next
-    }
-
-    func toStr() {
-        if this.next == nil {
-            return this.val
-        }
-        return this.val + ',' + this.next.toStr()
-    }
-}
+import leetcode_utils.ListNode
 
 func mergeTwoLists(l1, l2) {
     if l1 == nil {

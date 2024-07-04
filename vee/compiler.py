@@ -1,9 +1,11 @@
-from tokenizer import Token, TokenType
-from vee_parser import Node, NodeType
+import os
+from tokenizer import Token, TokenType, Tokenizer
+from vee_parser import Node, NodeType, Parser
 
 
 class Compiler:
-    def __init__(self):
+    def __init__(self, src_file_name):
+        self.src_file_name = src_file_name
         self.funcs = {}
         self.output = []
         self.var_count = 0
@@ -391,8 +393,22 @@ class Compiler:
                         self.decrease_indent()
                         self.add(f'end')
                         self.func_var = None
-
-
+            case NodeType.IMPORT:
+                path = os.path.dirname(self.src_file_name)
+                # TODO import from multi level path
+                #      resolve dependencies
+                file_name = children[0].children[0].token.value + '.vee'
+                value_name = children[0].children[1].token.value
+                file_path = os.path.join(path, file_name)
+                with open(file_path, 'r') as src_file:
+                    tokenizer = Tokenizer()
+                    tokens = tokenizer.tokenize(src_file.read())
+                    parser = Parser(tokens)
+                    imported_ast = parser.parse()
+                    for stmt in imported_ast.children:
+                        if stmt.type in (NodeType.FUNC_DEF, NodeType.CLASS) and stmt.children[0].token.value == value_name:
+                            self.compile(stmt)
+                            break
         
     def compile_ast(self, ast):
         self.gen_comment('==== runtime script ====')

@@ -1,0 +1,20 @@
+class ListNode {
+    val = nil
+    next = nil
+
+    func init(val) {
+        this.val = val
+    }
+
+    func setNext(node) {
+        this.next = node
+        this.next
+    }
+
+    func toStr() {
+        if this.next == nil {
+            return this.val
+        }
+        return this.val + ',' + this.next.toStr()
+    }
+}

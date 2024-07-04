@@ -2,27 +2,7 @@
     2. Add Two Numbers
     https://blog.siwei.dev/leetcode/2-add-two-numbers/
 */
-
-class ListNode {
-    val = nil
-    next = nil
-
-    func init(val) {
-        this.val = val
-    }
-
-    func setNext(node) {
-        this.next = node
-        this.next
-    }
-
-    func toStr() {
-        if this.next == nil {
-            return this.val
-        }
-        return this.val + ',' + this.next.toStr()
-    }
-}
+import leetcode_utils.ListNode
 
 func addTwoNumbers(l1, l2) {
     head = ListNode(0)

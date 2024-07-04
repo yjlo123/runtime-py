@@ -1,5 +1,6 @@
-from tokenizer import Token, TokenType
-from vee_parser import Node, NodeType
+import os
+from tokenizer import Token, TokenType, Tokenizer
+from vee_parser import Node, NodeType, Parser
 
 
 class ClassDef:
@@ -68,7 +69,8 @@ class Environment:
         print(">>>>", self._global, "|||||", self._cur_scope, "/////", self._frames)
 
 class Evaluator:
-    def __init__(self):
+    def __init__(self, src_file_name):
+        self.src_file_name = src_file_name
         self.env = {
             'true': True,
             'false': False,
@@ -236,6 +238,24 @@ class Evaluator:
                 return result
             case NodeType.CLASS:
                 env.set_global(children[0].token.value, self.eval_class_def(ast))
+            case NodeType.IMPORT:
+                path = os.path.dirname(self.src_file_name)
+                # TODO import from multi level path
+                #      resolve dependencies
+                file_name = children[0].children[0].token.value + '.vee'
+                value_name = children[0].children[1].token.value
+                file_path = os.path.join(path, file_name)
+                with open(file_path, 'r') as src_file:
+                    tokenizer = Tokenizer()
+                    tokens = tokenizer.tokenize(src_file.read())
+                    parser = Parser(tokens)
+                    ast = parser.parse()
+                    # ast.pretty_print(indent='', is_last=True)
+                    evaluator = Evaluator(file_path)
+                    evaluator.evaluate(ast)
+                    self.env[value_name] = evaluator.env[value_name]
+            case _:
+                raise Exception(f'Unknown AST node type {node_type}')
 
     def eval_class_def(self, ast):
         data = ClassDef(ast.children[0].token.value)

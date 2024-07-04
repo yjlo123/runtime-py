@@ -22,6 +22,7 @@ class Node:
 
 
 class NodeType(Enum):
+    IMPORT = 0
     EXPR_LIST = 1
     STMT_LIST = 2
     OPERATOR = 3
@@ -262,7 +263,12 @@ class Parser:
     def parse_stmt(self):
         token = self.peek()
         stmt_type = token.value
+        node = None
         match stmt_type:
+            case 'import':
+                node = Node(NodeType.IMPORT, token)
+                self.consume(value=stmt_type)
+                node.children.append(self.parse_expression())
             case 'func':
                 node = Node(NodeType.FUNC_DEF, token)
                 self.consume(value=stmt_type)
@@ -271,18 +277,15 @@ class Parser:
                 )  # func name
                 node.children.append(self.parse_args())
                 node.children.append(self.parse_block())
-                return node
             case 'for' | 'while':
                 node = Node(NodeType.FOR if stmt_type == 'for' else NodeType.WHILE, token)
                 self.consume(value=stmt_type)
                 node.children.append(self.parse_expression())
                 node.children.append(self.parse_block())
-                return node
             case 'return':
                 node = Node(NodeType.RETURN, token)
                 self.consume(value=stmt_type)
                 node.children.append(self.parse_expression())
-                return node
             case 'class':
                 node = Node(NodeType.CLASS, token)
                 self.consume(value=stmt_type)
@@ -290,9 +293,9 @@ class Parser:
                     Node(NodeType.VALUE, self.consume())
                 )  # class name
                 node.children.append(self.parse_block())
-                return node
             case _:
                 raise SyntaxError(f'Unhandled keyword for statement: {token}')
+        return node
 
     def parse_stmt_list(self):
         ast = Node(NodeType.STMT_LIST, None)

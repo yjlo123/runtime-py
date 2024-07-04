@@ -19,12 +19,12 @@ if __name__ == "__main__":
         ast = parser.parse()
         ast.pretty_print(indent='', is_last=True)
 
-        evaluator = Evaluator()
+        evaluator = Evaluator(src_file.name)
         evaluator.evaluate(ast)
 
         if args.compiled_runtime_script:
             with open(args.compiled_runtime_script, 'w') as compiled_output_file:
-                compiler = Compiler()
+                compiler = Compiler(src_file.name)
                 compiler.compile_ast(ast)
                 for line in compiler.output:
                     #print(line)
