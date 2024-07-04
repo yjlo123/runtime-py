@@ -1,19 +1,16 @@
-import sys
+import argparse
 from tokenizer import Tokenizer, print_tokens
-from parser import Parser
+from vee_parser import Parser
 from evaluator import Evaluator
 from compiler import Compiler
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print('Usage: python3 vee.py <input_file> [<output-file>]')
-        sys.exit(1)
+    arg_parser = argparse.ArgumentParser(description='Vee programming language')
+    arg_parser.add_argument('input_file', metavar='input_file', type=str, help='Source file')
+    arg_parser.add_argument('-c', dest='compiled_runtime_script', metavar='compiled_runtime_script', type=str, help='Compiled Runtime Script output file (optional)')
+    args = arg_parser.parse_args()
 
-    output_file = None
-    if len(sys.argv) >= 3:
-        output_file = sys.argv[2]
-
-    with open(sys.argv[1], 'r') as src_file:
+    with open(args.input_file, 'r') as src_file:
         tokenzier = Tokenizer()
         tokens = tokenzier.tokenize(src_file.read())
         # print_tokens(tokens)
@@ -25,7 +22,10 @@ if __name__ == "__main__":
         evaluator = Evaluator()
         evaluator.evaluate(ast)
 
-        compiler = Compiler()
-        compiler.compile_ast(ast)
-        for line in compiler.output:
-            print(line)
+        if args.compiled_runtime_script:
+            with open(args.compiled_runtime_script, 'w') as compiled_output_file:
+                compiler = Compiler()
+                compiler.compile_ast(ast)
+                for line in compiler.output:
+                    #print(line)
+                    compiled_output_file.write(line + '\n')

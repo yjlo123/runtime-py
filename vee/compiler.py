@@ -1,5 +1,5 @@
 from tokenizer import Token, TokenType
-from parser import Node, NodeType
+from vee_parser import Node, NodeType
 
 
 class Compiler:
@@ -350,6 +350,7 @@ class Compiler:
                 var_data = '_data'
                 self.gen_let(var_data, '{}')
                 self.gen_put(self.evaluated_identity(var_data), '__class', class_name)
+                lbl_end_of_init = self.get_new_label()
                 for stmt in children[1].children:
                     if stmt.type == NodeType.OPERATOR and stmt.token.value == '=':
                         # gen attribute
@@ -357,12 +358,14 @@ class Compiler:
                         right = self.compile(stmt.children[1])
                         self.add(f'put {self.evaluated_identity(var_data)} {left} {right}')
                     if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value == 'init':
+                        self.gen_compare_jump('jne', '$#', len(stmt.children[1].children), lbl_end_of_init)
                         # gen init
                         self.func_var = set()
                         for i, arg in enumerate(stmt.children[1].children):
                             self.add(f'let _{arg.token.value} ${i}')
                             self.func_var.add(arg.token.value)
                         self.compile(stmt.children[2])
+                self.gen_label(lbl_end_of_init)
                 self.gen_return(self.evaluated_identity(var_data))
                 self.decrease_indent()
                 self.add(f'end')

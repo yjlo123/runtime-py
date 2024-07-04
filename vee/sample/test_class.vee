@@ -2,17 +2,32 @@ class Point {
     x = 0
     y = 0
 
-    func set_values(xx, yy) {
-        this.x = xx
-        this.y = yy
+    func init(x, y) {
+        this.x = x
+        this.y = y
+    }
+
+    func toStr() {
+        return "(" + this.x + ", " + this.y + ")"
     }
 }
 
-p1 = Point()
-p1.set_values(23, 76)
+p1 = Point(23, 76)
+print(p1.toStr())
 
-print(p1.x)
+p2 = Point()  // use default constructor
+p2.x = 8
+print(p2.toStr())
 
+class Pair {
+    left = nil
+    right = nil
+}
+
+pair = Pair()
+pair.left = 'ab'
+pair.right = 23
+print(pair)
 
 class Person {
     name = ''

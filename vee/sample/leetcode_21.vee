@@ -7,12 +7,12 @@ class ListNode {
     val = nil
     next = nil
 
-    func init(v) {
-        this.val = v
+    func init(val) {
+        this.val = val
     }
 
-    func setNext(n) {
-        this.next = n
+    func setNext(node) {
+        this.next = node
         this.next
     }
 

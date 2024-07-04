@@ -1,5 +1,5 @@
 from tokenizer import Token, TokenType
-from parser import Node, NodeType
+from vee_parser import Node, NodeType
 
 
 class ClassDef:
@@ -31,7 +31,7 @@ class Environment:
         self._cur_scope = current
         self._frames = frames
 
-    def get(self, name):
+    def get(self, name, token=None):
         # check function scope
         if self._frames and name in self._frames[-1]:
             return self._frames[-1][name]
@@ -40,7 +40,11 @@ class Environment:
             return self._cur_scope[name]
         # check global
         if name not in self._global:
-            raise Exception(f'Undefined variable {name}')
+            # print(self._frames[-1].keys() if self._frames else None)
+            # print(self._cur_scope.keys() if self._cur_scope else None)
+            # print(self._global.keys())
+            msg = f'Undefined variable `{name}`' + (f' at {token.line}:{token.column}' if token else '')
+            raise Exception(msg)
         return self._global[name]
     
     def set_global(self, name, value):
@@ -86,13 +90,11 @@ class Evaluator:
                         return int(token.value)
                 return token.value
             case NodeType.IDENT:
-                return env.get(token.value)
+                return env.get(token.value, token)
             case NodeType.FUNC_DEF:
                 env.set_global(children[0].token.value, ast)
             case NodeType.RETURN:
                 result = self.evaluate(children[0], scope)
-                if not scope:
-                    self.frames.pop()
                 raise ReturnException(result)
             case NodeType.OPERATOR:
                 if token.value == '=':
@@ -187,7 +189,7 @@ class Evaluator:
                 elif token.value == 'type':
                     return str(type(params[0]).__name__)
                 else:
-                    func = env.get(token.value)
+                    func = env.get(token.value, token)
                     if isinstance(func, ClassDef):
                         # class constructor
                         return self.init_class_instance(func, params)
@@ -197,11 +199,14 @@ class Evaluator:
                         for i, arg in enumerate(func.children[1].children):
                             frame[arg.token.value] = params[i]
                         self.frames.append(frame)
+                        returned = None
                         try:
-                            return self.evaluate(func.children[2], scope)
+                            returned = self.evaluate(func.children[2], scope)
                         except ReturnException as e:
                             # capture function return
-                            return e.value
+                            returned = e.value
+                        self.frames.pop()
+                        return returned
             case NodeType.IF:
                 condition_index = 0
                 while condition_index < len(children) // 2:
@@ -214,6 +219,7 @@ class Evaluator:
                 val_range = self.evaluate(children[0].children[1], scope)
                 body = children[1]
                 this_frame = {}
+                # TODO new frame? should be able to access local scope in function
                 self.frames.append(this_frame)
                 result = None
                 for val in val_range:
@@ -253,7 +259,10 @@ class Evaluator:
 
         # call init method (optional)
         if 'init' in class_def.methods:
-            self.class_method_run(class_def, instance, 'init', params)
+            # when contructor is present
+            if len(class_def.methods['init'].children[1].children) == len(params):
+                # when argument count match
+                self.class_method_run(class_def, instance, 'init', params)
         return instance
 
     def class_method_call(self, class_instance, func_call):
@@ -269,7 +278,10 @@ class Evaluator:
         args = method.children[1].children
         method_body = method.children[2]
 
+        frame = {}
         for i, arg in enumerate(args):
-            # TODO add method args to frame instead
-            instance.data[arg.token.value] = params[i]
-        return self.evaluate(method_body, scope=instance.data)
+            frame[arg.token.value] = params[i]
+        self.frames.append(frame)
+        returned = self.evaluate(method_body, scope=instance.data)
+        self.frames.pop()
+        return returned
