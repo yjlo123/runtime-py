@@ -150,19 +150,11 @@ class Compiler:
         self.add(f'ret {val}')
 
     def gen_stmt_list(self, ast):
-        for i, child in enumerate(ast.children):
-            if i == len(ast.children) - 1:
-                # last
-                if child.type == NodeType.IDENT:
-                    self.gen_return(self.evaluated_identity(child.token.value))
-                elif child.type == NodeType.VALUE:
-                    self.gen_return(self.compile(child.token.value))
-                else:
-                    self.compile(child)
-            else:
-                self.compile(child)
-        
-        
+        last_res = None
+        for child in ast.children:
+            last_res = self.compile(child)
+        return last_res
+
     def gen_func_def(self, name, args, body):
         for arg in args.children:
             self.func_var.add(arg.token.value)
@@ -170,7 +162,9 @@ class Compiler:
         self.increase_indent()
         for i, arg in enumerate(args.children):
             self.add(f'let _{arg.token.value} ${i}')
-        self.compile(body)
+        last_res = self.compile(body)
+        if last_res is not None:
+            self.gen_return(last_res)
         self.decrease_indent()
         self.add(f'end')
         self.func_var = set()
@@ -306,7 +300,7 @@ class Compiler:
                 else:
                     return [self.compile(expr) for expr in children]
             case NodeType.STMT_LIST:
-                self.gen_stmt_list(ast)
+                return self.gen_stmt_list(ast)
             case NodeType.FUNC_CALL:
                 params = []
                 if children:
@@ -370,15 +364,19 @@ class Compiler:
                 for stmt in children[1].children:
                     if stmt.type == NodeType.FUNC_DEF and stmt.children[0].token.value != 'init':
                         method_name = stmt.children[0].token.value
+                        method_args = stmt.children[1].children
+                        method_body = stmt.children[2]
                         self.add(f'def {class_name}:{method_name}')
                         self.increase_indent()
 
                         self.add(f'let _data $0')
-                        for i, arg in enumerate(stmt.children[1].children):
+                        for i, arg in enumerate(method_args):
                             self.add(f'let _{arg.token.value} ${i+1}')
                             self.func_var.add(arg.token.value)
     
-                        self.compile(stmt.children[2])
+                        last_res = self.compile(method_body)
+                        if last_res is not None:
+                            self.gen_return(last_res)
                         self.decrease_indent()
                         self.add(f'end')
                         self.func_var = set()

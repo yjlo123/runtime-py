@@ -1,0 +1,238 @@
+/ ==== runtime script ====
+def ListNode
+ let _data {}
+ put $_data __class ListNode
+ put $_data val $nil
+ put $_data next $nil
+ let _v $0
+ put $_data val $_v
+ ret $_data
+end
+def ListNode:setNext
+ let _data $0
+ let _n $1
+ put $_data next $_n
+ get $_data next __var1
+ ret $__var1
+end
+def ListNode:toStr
+ let _data $0
+ get $_data next __var2
+ jeq $__var2 $nil __lbl4
+ let __var3 0
+ jmp __lbl5
+ #__lbl4
+ let __var3 1
+ #__lbl5
+ jeq $__var3 1 __lbl2
+ jmp __lbl3
+ #__lbl2
+ get $_data val __var4
+ ret $__var4
+ jmp __lbl1
+ #__lbl3
+ #__lbl1
+ get $_data val __var5
+ add __var6 $__var5 ','
+ get $_data next __var7
+ get $__var7 __class __var8
+ add __var8 $__var8 :
+ add __var8 $__var8 toStr
+ cal $__var8 $__var7
+ let __var9 $ret
+ add __var10 $__var6 $__var9
+ ret $__var10
+end
+def addTwoNumbers
+ let _l1 $0
+ let _l2 $1
+ cal ListNode 0
+ let __var11 $ret
+ let head $__var11
+ let result $head
+ let carry 0
+ #__lbl6
+ jne $_l1 $nil __lbl8
+ let __var12 0
+ jmp __lbl9
+ #__lbl8
+ let __var12 1
+ #__lbl9
+ jne $_l2 $nil __lbl10
+ let __var13 0
+ jmp __lbl11
+ #__lbl10
+ let __var13 1
+ #__lbl11
+ add __var14 $__var12 $__var13
+ jgt $__var14 0 __lbl12
+ let __var15 0
+ jmp __lbl13
+ #__lbl12
+ let __var15 1
+ #__lbl13
+ jne $__var15 1 __lbl7
+ let temp $carry
+ jne $_l1 $nil __lbl17
+ let __var16 0
+ jmp __lbl18
+ #__lbl17
+ let __var16 1
+ #__lbl18
+ jne $_l2 $nil __lbl19
+ let __var17 0
+ jmp __lbl20
+ #__lbl19
+ let __var17 1
+ #__lbl20
+ add __var18 $__var16 $__var17
+ jgt $__var18 1 __lbl21
+ let __var19 0
+ jmp __lbl22
+ #__lbl21
+ let __var19 1
+ #__lbl22
+ jeq $__var19 1 __lbl15
+ jmp __lbl16
+ #__lbl15
+ get $_l1 val __var20
+ add __var21 $temp $__var20
+ get $_l2 val __var22
+ add __var23 $__var21 $__var22
+ let temp $__var23
+ jmp __lbl14
+ #__lbl16
+ jne $_l1 $nil __lbl25
+ let __var24 0
+ jmp __lbl26
+ #__lbl25
+ let __var24 1
+ #__lbl26
+ jeq $__var24 1 __lbl23
+ jmp __lbl24
+ #__lbl23
+ get $_l1 val __var25
+ add __var26 $temp $__var25
+ let temp $__var26
+ jmp __lbl14
+ #__lbl24
+ jeq 1 1 __lbl27
+ jmp __lbl28
+ #__lbl27
+ get $_l2 val __var27
+ add __var28 $temp $__var27
+ let temp $__var28
+ jmp __lbl14
+ #__lbl28
+ #__lbl14
+ mod __var29 $temp 10
+ cal ListNode $__var29
+ let __var30 $ret
+ put $head next $__var30
+ div __var31 $temp 10
+ let carry $__var31
+ jne $_l1 $nil __lbl32
+ let __var32 0
+ jmp __lbl33
+ #__lbl32
+ let __var32 1
+ #__lbl33
+ jeq $__var32 1 __lbl30
+ jmp __lbl31
+ #__lbl30
+ get $_l1 next __var33
+ let _l1 $__var33
+ jmp __lbl29
+ #__lbl31
+ #__lbl29
+ jne $_l2 $nil __lbl37
+ let __var34 0
+ jmp __lbl38
+ #__lbl37
+ let __var34 1
+ #__lbl38
+ jeq $__var34 1 __lbl35
+ jmp __lbl36
+ #__lbl35
+ get $_l2 next __var35
+ let _l2 $__var35
+ jmp __lbl34
+ #__lbl36
+ #__lbl34
+ get $head next __var36
+ let head $__var36
+ jmp __lbl6
+ #__lbl7
+ jgt $carry 0 __lbl42
+ let __var37 0
+ jmp __lbl43
+ #__lbl42
+ let __var37 1
+ #__lbl43
+ jeq $__var37 1 __lbl40
+ jmp __lbl41
+ #__lbl40
+ cal ListNode $carry
+ let __var38 $ret
+ put $head next $__var38
+ jmp __lbl39
+ #__lbl41
+ #__lbl39
+ get $result next __var39
+ ret $__var39
+end
+cal ListNode 3
+let __var40 $ret
+let l1 $__var40
+get $l1 __class __var41
+add __var41 $__var41 :
+add __var41 $__var41 setNext
+cal ListNode 4
+let __var42 $ret
+cal $__var41 $l1 $__var42
+let __var43 $ret
+get $__var43 __class __var44
+add __var44 $__var44 :
+add __var44 $__var44 setNext
+cal ListNode 5
+let __var45 $ret
+cal $__var44 $__var43 $__var45
+let __var46 $ret
+cal ListNode 5
+let __var47 $ret
+let l2 $__var47
+get $l2 __class __var48
+add __var48 $__var48 :
+add __var48 $__var48 setNext
+cal ListNode 6
+let __var49 $ret
+cal $__var48 $l2 $__var49
+let __var50 $ret
+get $__var50 __class __var51
+add __var51 $__var51 :
+add __var51 $__var51 setNext
+cal ListNode 8
+let __var52 $ret
+cal $__var51 $__var50 $__var52
+let __var53 $ret
+get $l1 __class __var54
+add __var54 $__var54 :
+add __var54 $__var54 toStr
+cal $__var54 $l1
+let __var55 $ret
+prt $__var55
+get $l2 __class __var56
+add __var56 $__var56 :
+add __var56 $__var56 toStr
+cal $__var56 $l2
+let __var57 $ret
+prt $__var57
+cal addTwoNumbers $l1 $l2
+let __var58 $ret
+let res $__var58
+get $res __class __var59
+add __var59 $__var59 :
+add __var59 $__var59 toStr
+cal $__var59 $res
+let __var60 $ret
+prt $__var60
