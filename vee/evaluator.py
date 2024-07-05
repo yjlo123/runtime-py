@@ -41,9 +41,9 @@ class Environment:
             return self._cur_scope[name]
         # check global
         if name not in self._global:
-            # print(self._frames[-1].keys() if self._frames else None)
-            # print(self._cur_scope.keys() if self._cur_scope else None)
-            # print(self._global.keys())
+            # print('frame: ', self._frames[-1].keys() if self._frames else None)
+            # print('scope: ', self._cur_scope.keys() if self._cur_scope else None)
+            # print('global: ', self._global.keys())
             msg = f'Undefined variable `{name}`' + (f' at {token.line}:{token.column}' if token else '')
             raise Exception(msg)
         return self._global[name]
@@ -99,40 +99,54 @@ class Evaluator:
                 result = self.evaluate(children[0], scope)
                 raise ReturnException(result)
             case NodeType.OPERATOR:
+                left = children[0] if len(children) >= 1 else None
+                right = children[1] if len(children) >= 2 else None
                 if token.value == '=':
-                    left = children[0]
-                    right_val = self.evaluate(children[1], scope)
+                    right_val = self.evaluate(right, scope)
                     if left.type == NodeType.OPERATOR and left.token.value == '.':
                         instance = self.evaluate(left.children[0], scope)
                         instance.data[left.children[1].token.value] = right_val
                     else:
                         env.set(left.token.value, right_val)
                 else:
-                    left_val = self.evaluate(children[0], scope)
+                    left_val = self.evaluate(left, scope)
                     match token.value:
                         case '.':
-                            if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
-                                return float(f'{left_val}.{self.evaluate(children[1], scope)}')
+                            if left.token.type==TokenType.NUM and right.token.type==TokenType.NUM:
+                                return float(f'{left_val}.{self.evaluate(right, scope)}')
                             elif isinstance(left_val, ClassInstance):
-                                if children[1].type == NodeType.IDENT:
+                                if right.type == NodeType.IDENT:
                                     # memeber access
-                                    return self.evaluate(children[1], scope=left_val.data)
-                                elif children[1].type == NodeType.FUNC_CALL:
+                                    return self.evaluate(right, scope=left_val.data)
+                                elif right.type == NodeType.FUNC_CALL:
                                     # method access
                                     try:
-                                        return self.class_method_call(left_val, children[1])
+                                        return self.class_method_call(left_val, right)
                                     except ReturnException as e:
                                         # capture method return
                                         return e.value
-                            elif children[1].token.value == 'len':
+                            elif right.token.value == 'len':
                                 return len(left_val)
                         case '=>':
                             func_node = Node(NodeType.FUNC_DEF, token)
                             func_node.children.append(Node(NodeType.IDENT, Token('(lambda)', TokenType.IDN, token.line, token.column)))
-                            func_node.children.append(children[0])
-                            func_node.children.append(children[1])
+                            func_node.children.append(left)
+                            func_node.children.append(right)
                             return func_node
-                    right_val = self.evaluate(children[1], scope)
+
+                    # operators may not require right evaluated
+                    match token.value:
+                        case '&&':
+                            if not left_val:
+                                return False
+                            return self.evaluate(right, scope)
+                        case '||':
+                            if not left_val:
+                                return self.evaluate(right, scope)
+                            return True
+
+                    # operators requres right evaluated
+                    right_val = self.evaluate(children[1], scope) if len(children) >= 2 else None
                     match token.value:
                         case '+':
                             if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
@@ -142,6 +156,8 @@ class Evaluator:
                             except:
                                 return str(left_val) + str(right_val)
                         case '-':
+                            if right_val == None:
+                                return 0 - int(left_val)
                             return int(left_val) - int(right_val)
                         case '*':
                             return float(left_val) * float(right_val)
@@ -169,10 +185,6 @@ class Evaluator:
                             return left_val[int(right_val)]
                         case ':':
                             return (left_val, right_val)
-                        case '&&':
-                            return left_val and right_val
-                        case '||':
-                            return left_val or right_val
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:

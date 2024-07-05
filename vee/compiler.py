@@ -205,7 +205,8 @@ class Compiler:
             case NodeType.RETURN:
                 self.gen_return(self.compile(children[0]))
             case NodeType.OPERATOR:
-                left, right = children[0], children[1]
+                left = children[0] if len(children) >= 1 else None
+                right = children[1] if len(children) >= 2 else None
                 right_val = None
                 if token.value == '=':
                     right_val = self.compile(right)
@@ -250,12 +251,41 @@ class Compiler:
                                     new_var = self.get_new_var()
                                     self.gen_let(new_var, '$ret')
                                     return self.evaluated_identity(new_var)
-                    if right_val is None:
+                        case '&&':
+                            res = self.get_new_var()
+                            lbl_result_false = self.get_new_label()
+                            lbl_check_done = self.get_new_label()
+                            self.add(f'jeq {left_val} 0 {lbl_result_false}')
+                            right_val = self.compile(right)
+                            self.add(f'jeq {right_val} 0 {lbl_result_false}')
+                            self.gen_let(res, '1')
+                            self.gen_jump(lbl_check_done)
+                            self.gen_label(lbl_result_false)
+                            self.gen_let(res, '0')
+                            self.gen_label(lbl_check_done)
+                            return self.compile(self.create_identity_node(res))
+                        case '||':
+                            res = self.get_new_var()
+                            lbl_result_true = self.get_new_label()
+                            lbl_check_done = self.get_new_label()
+                            self.add(f'jeq {left_val} 1 {lbl_result_true}')
+                            right_val = self.compile(right)
+                            self.add(f'jeq {right_val} 1 {lbl_result_true}')
+                            self.gen_let(res, '0')
+                            self.gen_jump(lbl_check_done)
+                            self.gen_label(lbl_result_true)
+                            self.gen_let(res, '1')
+                            self.gen_label(lbl_check_done)
+                            return self.compile(self.create_identity_node(res))
+
+                    if right is not None and right_val is None:
                         right_val = self.compile(right)
                     match token.value:
                         case '+':
                             return self.compile(self.gen_op('add', left_val, right_val))
                         case '-':
+                            if right is None:
+                                return self.compile(self.gen_op('sub', 0, left_val))
                             return self.compile(self.gen_op('sub', left_val, right_val))
                         case '*':
                             return self.compile(self.gen_op('mul', left_val, right_val))
@@ -283,12 +313,6 @@ class Compiler:
                             return self.compile(self.gen_compare('jeq', left_val, right_val))
                         case '!=':
                             return self.compile(self.gen_compare('jne', left_val, right_val))
-                        case '&&':
-                            sum_res = self.compile(self.gen_op("add", left_val, right_val))
-                            return self.compile(self.gen_compare('jgt', sum_res, 1))
-                        case '||':
-                            sum_res = self.compile(self.gen_op("add", left_val, right_val))
-                            return self.compile(self.gen_compare('jgt', sum_res, 0))
                         case '..':
                             range_var = self.get_new_var()
                             self.gen_let(range_var, '[]')
@@ -324,6 +348,9 @@ class Compiler:
                     return self.evaluated_identity(new_var)
             case NodeType.IF:
                 lbl_end_if = self.get_new_label()
+                res_var = self.get_new_var()
+                # the result of the if-else-expression for returning
+                self.gen_let(res_var, '$nil')
                 for cond_index in range(len(children) // 2):
                     cond = children[cond_index * 2]
                     lbl_true = self.get_new_label()
@@ -333,10 +360,11 @@ class Compiler:
                     self.gen_jump(lbl_end_true)
                     # true block, and jump to the very end
                     self.gen_label(lbl_true)
-                    self.compile(children[cond_index * 2 + 1])
+                    self.gen_let(res_var, self.compile(children[cond_index * 2 + 1]))
                     self.gen_jump(lbl_end_if)
                     self.gen_label(lbl_end_true)
                 self.gen_label(lbl_end_if)
+                return self.evaluated_identity(res_var)
             case NodeType.FOR:
                 var = children[0].children[0].token.value
                 val_range = self.compile(children[0].children[1])

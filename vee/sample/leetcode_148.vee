@@ -1,0 +1,65 @@
+/*
+    148. Sort List
+    https://blog.siwei.dev/leetcode/148-sort-list/
+*/
+import leetcode_utils.ListNode
+
+func mergeList(l1, l2) {
+    if l1 == nil {
+        return l2
+    } else if l2 == nil {
+        return l1
+    }
+
+    prev = ListNode()
+    dummy = prev
+    while l1 != nil && l2 != nil {
+        if l1.val > l2.val {
+            prev.next = l2
+            l2 = l2.next
+        } else {
+            prev.next = l1
+            l1 = l1.next
+        }
+        prev = prev.next
+    }
+    prev.next = if l1 == nil { l2 } else { l1 }
+    return dummy.next
+}
+
+func sortList(head) {
+    if head == nil || head.next == nil {
+        return head
+    }
+    left = head
+    slow = head
+    fast = head.next
+    while fast != nil && fast.next != nil {
+        slow = slow.next
+        fast = fast.next.next
+    }
+
+    right = slow.next
+    slow.next = nil
+    l1 = sortList(left)
+    l2 = sortList(right)
+    return mergeList(l1, l2)
+}
+
+list = ListNode(4)
+list.setNext(ListNode(2)).setNext(ListNode(1)).setNext(ListNode(3))
+
+print(sortList(list).toStr())
+
+list2 = ListNode(-1)
+list2.setNext(ListNode(5)).setNext(ListNode(3)).setNext(ListNode(4)).setNext(ListNode(0))
+
+print(sortList(list2).toStr())
+
+// list = ListNode(1)
+// list.setNext(ListNode(3)).setNext(ListNode(8)).setNext(ListNode(22))
+
+// list2 = ListNode(1)
+// list2.setNext(ListNode(2)).setNext(ListNode(10))
+
+// print(mergeList(list, list2).toStr())

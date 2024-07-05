@@ -189,7 +189,13 @@ class Parser:
         token = self.peek()
         if token.value in LIST_PAIR and token.value != '(':
             return self.parse_expression_list(token.value)
-        if token.type == TokenType.IDN:
+        elif token.type == TokenType.SYM and token.value == '-':
+            # unary operator
+            token = self.consume()
+            node = Node(NodeType.OPERATOR, token)
+            node.children.append(self.parse_atom())
+            return node
+        elif token.type == TokenType.IDN:
             token = self.consume()
             node = Node(NodeType.IDENT, token)
             # Lookahead to check if it's a function call
