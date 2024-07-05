@@ -1,0 +1,21 @@
+/*
+    206. Reverse Linked List
+    https://blog.siwei.dev/leetcode/206-reverse-linked-list/
+*/
+import leetcode_utils.ListNode
+
+func reverseList(head) {
+    if head == nil || head.next == nil {
+        return head
+    }
+
+    next_node = reverseList(head.next)
+    head.next.next = head
+    head.next = nil
+    return next_node
+}
+
+list = ListNode(1)
+list.setNext(ListNode(2)).setNext(ListNode(3)).setNext(ListNode(4)).setNext(ListNode(5))
+
+print(reverseList(list).toStr())

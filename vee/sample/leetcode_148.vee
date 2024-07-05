@@ -55,11 +55,3 @@ list2 = ListNode(-1)
 list2.setNext(ListNode(5)).setNext(ListNode(3)).setNext(ListNode(4)).setNext(ListNode(0))
 
 print(sortList(list2).toStr())
-
-// list = ListNode(1)
-// list.setNext(ListNode(3)).setNext(ListNode(8)).setNext(ListNode(22))
-
-// list2 = ListNode(1)
-// list2.setNext(ListNode(2)).setNext(ListNode(10))
-
-// print(mergeList(list, list2).toStr())
