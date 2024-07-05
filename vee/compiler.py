@@ -366,9 +366,9 @@ class Compiler:
                 self.gen_label(lbl_end_if)
                 return self.evaluated_identity(res_var)
             case NodeType.FOR:
-                var = children[0].children[0].token.value
-                val_range = self.compile(children[0].children[1])
-                body = children[1]
+                var = children[0].token.value
+                val_range = self.compile(children[1])
+                body = children[2]
                 self.gen_for(var, val_range, body)
             case NodeType.WHILE:
                 self.gen_while(children[0], children[1])

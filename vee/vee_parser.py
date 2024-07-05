@@ -287,6 +287,9 @@ class Parser:
                 node = Node(NodeType.FOR if stmt_type == 'for' else NodeType.WHILE, token)
                 self.consume(value=stmt_type)
                 node.children.append(self.parse_expression())
+                if stmt_type == 'for':
+                    self.consume(type=TokenType.KEY, value='in')
+                    node.children.append(self.parse_expression())
                 node.children.append(self.parse_block())
             case 'return':
                 node = Node(NodeType.RETURN, token)

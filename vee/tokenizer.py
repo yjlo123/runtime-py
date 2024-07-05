@@ -21,7 +21,7 @@ class Token:
         return f'{self.value} ({self.type.name})[{self.line}:{self.column}]'
 
 KEY_WORDS = [
-    'import', 'class', 'func', 'for', 'while', 'if', 'return'
+    'import', 'class', 'func', 'for', 'in', 'while', 'if', 'return'
 ]
 
 MULTI_CHAR_OPERATORS = {

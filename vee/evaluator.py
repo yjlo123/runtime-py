@@ -109,6 +109,16 @@ class Evaluator:
                     else:
                         env.set(left.token.value, right_val)
                 else:
+                    # operators not requiring eval left or right
+                    match token.value:
+                        case '=>':
+                            func_node = Node(NodeType.FUNC_DEF, token)
+                            func_node.children.append(Node(NodeType.IDENT, Token('(lambda)', TokenType.IDN, token.line, token.column)))
+                            func_node.children.append(left)
+                            func_node.children.append(right)
+                            return func_node
+
+                    # operators requiring left evaluated
                     left_val = self.evaluate(left, scope)
                     match token.value:
                         case '.':
@@ -127,12 +137,6 @@ class Evaluator:
                                         return e.value
                             elif right.token.value == 'len':
                                 return len(left_val)
-                        case '=>':
-                            func_node = Node(NodeType.FUNC_DEF, token)
-                            func_node.children.append(Node(NodeType.IDENT, Token('(lambda)', TokenType.IDN, token.line, token.column)))
-                            func_node.children.append(left)
-                            func_node.children.append(right)
-                            return func_node
 
                     # operators may not require right evaluated
                     match token.value:
@@ -229,9 +233,9 @@ class Evaluator:
                         return self.evaluate(children[condition_index * 2 + 1], scope)
                     condition_index += 1
             case NodeType.FOR:
-                var = children[0].children[0].token.value
-                val_range = self.evaluate(children[0].children[1], scope)
-                body = children[1]
+                var = children[0].token.value
+                val_range = self.evaluate(children[1], scope)
+                body = children[2]
                 this_frame = {}
                 # TODO new frame? should be able to access local scope in function
                 self.frames.append(this_frame)
