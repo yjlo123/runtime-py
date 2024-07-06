@@ -18,3 +18,31 @@ class ListNode {
         return this.val + ',' + this.next.toStr()
     }
 }
+
+class TreeNode {
+    val = nil
+    left = nil
+    right = nil
+
+    func init(val) {
+        this.val = val
+    }
+
+    func pretty_print(indent, is_last) {
+        head = if is_last { '└──' } else { '├──' }
+        print(indent + head + this.val)
+        child_head = if is_last { ' ' } else { '│' }
+
+        if this.left != nil {
+            this.left.pretty_print(indent + child_head + '  ', false)
+        } else if this.right != nil {
+            print(indent + child_head + '  ' + '├──')
+        }
+
+        if this.right != nil {
+            this.right.pretty_print(indent + child_head + '  ', true)
+        } else if this.left != nil {
+            print(indent + child_head + '  ' + '└──')
+        }
+    }
+}

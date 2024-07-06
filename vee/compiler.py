@@ -10,7 +10,7 @@ class Compiler:
         self.var_count = 0
         self.label_count = 0
         self.lambda_count = 0
-        self.func_var = None
+        self.func_var = None  # set of variables defined in the current function
         self.indent = ''
         self.defined_funcs= set()
         self.lambdas = []
@@ -61,7 +61,7 @@ class Compiler:
         self.add(f'let {name} {value}')
 
     def gen_op(self, op, left_val, right_val, res_var=None):
-        if not res_var:
+        if res_var is None:
             res_var = self.get_new_var()
         self.add(f'{op} {res_var} {left_val} {right_val}')
         return self.create_identity_node(res_var)
@@ -155,7 +155,7 @@ class Compiler:
         self.add(f'jmp {label}')
 
     def gen_func_call(self, func_name, *args, builtin=False):
-        if not builtin and func_name not in self.defined_funcs:
+        if not builtin and func_name[0] != '$' and func_name not in self.defined_funcs:
             # possibly a lambda
             func_name = '$' + func_name
         self.add(f'{"" if builtin else "cal "}{func_name} ' + ' '.join(str(arg) for arg in args[0]) if args else '')
@@ -194,11 +194,11 @@ class Compiler:
         children = ast.children
         match node_type:
             case NodeType.VALUE:
+                # value boolean, e.g. condtion in if-else
                 if token.type == TokenType.IDN and token.value == 'true':
                     return 1
                 elif token.type == TokenType.IDN and token.value == 'false':
                     return 0
-                
                 if token.type == TokenType.STR:
                     return f"'{token.value}'"
                 elif token.type == TokenType.NUM:
@@ -210,6 +210,11 @@ class Compiler:
                         return int(token.value)
                 return token.value
             case NodeType.IDENT:
+                # identity boolean, e.g. user literal
+                if token.type == TokenType.IDN and token.value == 'true':
+                    return 1
+                elif token.type == TokenType.IDN and token.value == 'false':
+                    return 0
                 if self.func_var and token.value in self.func_var:
                     return f'$_{token.value}'
                 elif token.value == 'this':
@@ -361,7 +366,7 @@ class Compiler:
                 if children:
                     params = self.compile(children[0])
                 if token.value == 'print':
-                    self.gen_func_call('prt', params, builtin=True)
+                    self.gen_func_call('prt', params or ['\'\''], builtin=True)
                 elif token.value == 'type':
                     return self.gen_type(params[0])
                 else:
@@ -397,6 +402,7 @@ class Compiler:
                 self.gen_while(children[0], children[1])
             case NodeType.CLASS:
                 class_name = children[0].token.value
+                self.defined_funcs.add(class_name)
                 # gen contructor
                 self.add(f'def {class_name}')
                 self.increase_indent()
@@ -457,6 +463,7 @@ class Compiler:
                     parser = Parser(tokens)
                     imported_ast = parser.parse()
                     for stmt in imported_ast.children:
+                        # TODO support importing var values
                         if stmt.type in (NodeType.FUNC_DEF, NodeType.CLASS) and stmt.children[0].token.value == value_name:
                             self.compile(stmt)
                             break
