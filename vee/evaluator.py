@@ -41,9 +41,9 @@ class Environment:
             return self._cur_scope[name]
         # check global
         if name not in self._global:
-            # print('frame: ', self._frames[-1].keys() if self._frames else None)
-            # print('scope: ', self._cur_scope.keys() if self._cur_scope else None)
-            # print('global: ', self._global.keys())
+            print('frame: ', self._frames[-1].keys() if self._frames else None)
+            print('scope: ', self._cur_scope.keys() if self._cur_scope else None)
+            print('global: ', self._global.keys())
             msg = f'Undefined variable `{name}`' + (f' at {token.line}:{token.column}' if token else '')
             raise Exception(msg)
         return self._global[name]
@@ -51,14 +51,23 @@ class Environment:
     def set_global(self, name, value):
         self._global[name] = value
 
+    def _present_in_frame(self, name):
+        return len(self._frames) > 0 and name in self._frames[-1]
+    
+    def _present_in_scope(self, name):
+        return self._cur_scope is not None and name in self._cur_scope
+
     def set(self, name, value):
         if self._cur_scope is None and len(self._frames) > 0:
             # function scope
             self._frames[-1][name] = value
-        elif self._cur_scope is not None and len(self._frames) > 0 and name in self._frames[-1]:
+        elif not self._present_in_scope(name) and len(self._frames) > 0:
+            # no scope / not in scope, but there is a frame
+            self._frames[-1][name] = value
+        elif self._present_in_scope(name) and self._present_in_frame(name):
             # method local overriding instance scope
             self._frames[-1][name] = value
-        elif self._cur_scope is not None and name in self._cur_scope:
+        elif self._present_in_scope(name):
             # instance scope
             self._cur_scope[name] = value
         else:
@@ -308,13 +317,13 @@ class Evaluator:
                 self.class_method_run(class_def, instance, 'init', params)
         return instance
 
-    def class_method_call(self, class_instance, func_call):
-        class_def = self.env[class_instance.class_name]
+    def class_method_call(self, instance, func_call):
+        class_def = self.env[instance.class_name]
         method_name = func_call.token.value
         params = []
         if func_call.children:
-            params = self.evaluate(func_call.children[0])
-        return self.class_method_run(class_def, class_instance, method_name, params)
+            params = self.evaluate(func_call.children[0], scope=instance.data)
+        return self.class_method_run(class_def, instance, method_name, params)
 
     def class_method_run(self, class_def, instance, method_name, params):
         method = class_def.methods[method_name]
@@ -325,6 +334,11 @@ class Evaluator:
         for i, arg in enumerate(args):
             frame[arg.token.value] = params[i]
         self.frames.append(frame)
-        returned = self.evaluate(method_body, scope=instance.data)
+        returned = None
+        try:
+            returned = self.evaluate(method_body, scope=instance.data)
+        except ReturnException as e:
+            # capture return statement
+            returned = e.value
         self.frames.pop()
         return returned
