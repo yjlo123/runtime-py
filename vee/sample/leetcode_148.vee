@@ -46,12 +46,8 @@ func sortList(head) {
     return mergeList(l1, l2)
 }
 
-list = ListNode(4)
-list.setNext(ListNode(2)).setNext(ListNode(1)).setNext(ListNode(3))
-
+list = ListNode.FromList([4, 2, 1, 3])
 print(sortList(list).toStr())
 
-list2 = ListNode(-1)
-list2.setNext(ListNode(5)).setNext(ListNode(3)).setNext(ListNode(4)).setNext(ListNode(0))
-
+list2 = ListNode.FromList([-1, 5, 3, 4, 0])
 print(sortList(list2).toStr())

@@ -215,7 +215,9 @@ class Compiler:
                     return 1
                 elif token.type == TokenType.IDN and token.value == 'false':
                     return 0
-                if self.func_var and token.value in self.func_var:
+                elif token.type == TokenType.IDN and token.value in self.defined_funcs:
+                    return token.value
+                elif self.func_var and token.value in self.func_var:
                     return f'$_{token.value}'
                 elif token.value == 'this':
                     return '$_data'
@@ -263,15 +265,20 @@ class Compiler:
                                 # bult-in len
                                 return self.gen_len(left_val)
                             else:
+                                instance_ref = left_val
                                 if right.type == NodeType.IDENT:
                                     # instance property
-                                    return self.gen_get(left_val, right.token.value)
+                                    return self.gen_get(instance_ref, right.token.value)
+                                    # TODO get static property
                                 elif right.type == NodeType.FUNC_CALL:
                                     # instance method call
                                     #  find class name for the instance
-                                    instance_ref = left_val
                                     class_name_var = self.get_new_var()
-                                    self.gen_get(instance_ref, '__class', class_name_var)
+                                    if instance_ref[0] != '$':
+                                        # calling class static method
+                                        self.gen_let(class_name_var, instance_ref)
+                                    else:
+                                        self.gen_get(instance_ref, '__class', class_name_var)
                                     self.gen_op('add', self.evaluated_identity(class_name_var), ':', res_var=class_name_var)
                                     self.gen_op('add', self.evaluated_identity(class_name_var), right.token.value, res_var=class_name_var)
                                     method_full_name = f'{self.evaluated_identity(class_name_var)}'

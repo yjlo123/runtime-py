@@ -15,7 +15,5 @@ func deleteDuplicates(head) {
     return head
 }
 
-list = ListNode(1)
-list.setNext(ListNode(1)).setNext(ListNode(2)).setNext(ListNode(3)).setNext(ListNode(3))
-
+list = ListNode.FromList([1, 1, 2, 3, 3])
 print(deleteDuplicates(list).toStr())

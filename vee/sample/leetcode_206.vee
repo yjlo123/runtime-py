@@ -15,7 +15,5 @@ func reverseList(head) {
     return next_node
 }
 
-list = ListNode(1)
-list.setNext(ListNode(2)).setNext(ListNode(3)).setNext(ListNode(4)).setNext(ListNode(5))
-
+list = ListNode.FromList([1, 2, 3, 4, 5])
 print(reverseList(list).toStr())

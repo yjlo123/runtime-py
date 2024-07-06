@@ -1,0 +1,24 @@
+/*
+    94. Binary Tree Inorder Traversal
+    https://blog.siwei.dev/leetcode/94-binary-tree-inorder-traversal/
+*/
+import leetcode_utils.TreeNode
+
+
+root = TreeNode(1)
+
+left_tree = TreeNode(4)
+left_tree.left = TreeNode(5)
+//left_tree.right = TreeNode(6)
+
+root.left = left_tree
+root.right = TreeNode(3)
+
+root.pretty_print(' ', true)
+
+print()
+
+root = TreeNode(1)
+root.left = TreeNode(4)
+//root.right = TreeNode(3)
+root.pretty_print(' ', true)

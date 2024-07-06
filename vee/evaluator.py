@@ -41,9 +41,11 @@ class Environment:
             return self._cur_scope[name]
         # check global
         if name not in self._global:
+            print(' === ENV ===')
             print('frame: ', self._frames[-1].keys() if self._frames else None)
             print('scope: ', self._cur_scope.keys() if self._cur_scope else None)
             print('global: ', self._global.keys())
+            print(' ===========')
             msg = f'Undefined variable `{name}`' + (f' at {token.line}:{token.column}' if token else '')
             raise Exception(msg)
         return self._global[name]
@@ -136,6 +138,17 @@ class Evaluator:
                         case '.':
                             if left.token.type==TokenType.NUM and right.token.type==TokenType.NUM:
                                 return float(f'{left_val}.{self.evaluate(right, scope)}')
+                            elif isinstance(left_val, ClassDef):
+                                if right.type == NodeType.IDENT:
+                                    # static memeber access
+                                    return self.evaluate(right, scope=left_val.attributes)
+                                elif right.type == NodeType.FUNC_CALL:
+                                    # static method access
+                                    try:
+                                        return self.class_static_method_call(left_val, right)
+                                    except ReturnException as e:
+                                        # capture method return
+                                        return e.value
                             elif isinstance(left_val, ClassInstance):
                                 if right.type == NodeType.IDENT:
                                     # memeber access
@@ -252,14 +265,10 @@ class Evaluator:
                 var = children[0].token.value
                 val_range = self.evaluate(children[1], scope)
                 body = children[2]
-                this_frame = {}
-                # TODO new frame? should be able to access local scope in function
-                self.frames.append(this_frame)
                 result = None
                 for val in val_range:
-                    this_frame[var] = val
+                    env.set(var, val)
                     result = self.evaluate(body, scope)
-                self.frames.pop()
                 return result
             case NodeType.WHILE:
                 cond = children[0]
@@ -322,8 +331,15 @@ class Evaluator:
         method_name = func_call.token.value
         params = []
         if func_call.children:
-            params = self.evaluate(func_call.children[0], scope=instance.data)
+            params = self.evaluate(func_call.children[0], scope=instance.data) # TODO scope?
         return self.class_method_run(class_def, instance, method_name, params)
+
+    def class_static_method_call(self, class_def, func_call):
+        method_name = func_call.token.value
+        params = []
+        if func_call.children:
+            params = self.evaluate(func_call.children[0], scope=None)
+        return self.class_method_run(class_def, None, method_name, params)
 
     def class_method_run(self, class_def, instance, method_name, params):
         method = class_def.methods[method_name]
@@ -336,7 +352,7 @@ class Evaluator:
         self.frames.append(frame)
         returned = None
         try:
-            returned = self.evaluate(method_body, scope=instance.data)
+            returned = self.evaluate(method_body, scope=instance.data if instance else None)
         except ReturnException as e:
             # capture return statement
             returned = e.value

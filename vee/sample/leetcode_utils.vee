@@ -11,6 +11,18 @@ class ListNode {
         this.next
     }
 
+    func FromList(list) {
+        if list == nil || list == [] {
+            return nil
+        }
+        head = ListNode(list[0])
+        tail = head
+        for i in 1..list.len {
+            tail = tail.setNext(ListNode(list[i]))
+        }
+        return head
+    }
+
     func toStr() {
         if this.next == nil {
             return this.val
@@ -32,17 +44,18 @@ class TreeNode {
         head = if is_last { '└──' } else { '├──' }
         print(indent + head + this.val)
         child_head = if is_last { ' ' } else { '│' }
+        new_indent = indent + child_head + '  '
 
         if this.left != nil {
-            this.left.pretty_print(indent + child_head + '  ', false)
+            this.left.pretty_print(new_indent, false)
         } else if this.right != nil {
-            print(indent + child_head + '  ' + '├──')
+            print(new_indent + '├──')
         }
 
         if this.right != nil {
-            this.right.pretty_print(indent + child_head + '  ', true)
+            this.right.pretty_print(new_indent, true)
         } else if this.left != nil {
-            print(indent + child_head + '  ' + '└──')
+            print(new_indent + '└──')
         }
     }
 }
