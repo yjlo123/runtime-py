@@ -114,8 +114,11 @@ class Evaluator:
                         case '=>':
                             func_node = Node(NodeType.FUNC_DEF, token)
                             func_node.children.append(Node(NodeType.IDENT, Token('(lambda)', TokenType.IDN, token.line, token.column)))
-                            func_node.children.append(left)
-                            func_node.children.append(right)
+                            func_node.children.append(left) # func args
+                            func_node.children.append(right) # func body
+                            if self.frames:
+                                # func closure
+                                func_node.children.append(self.frames[-1])
                             return func_node
 
                     # operators requiring left evaluated
@@ -207,6 +210,7 @@ class Evaluator:
                 elif token.value == 'type':
                     return str(type(params[0]).__name__)
                 else:
+                    # user defined function
                     func = env.get(token.value, token)
                     if isinstance(func, ClassDef):
                         # class constructor
@@ -214,6 +218,9 @@ class Evaluator:
                     else:
                         # user defined function call
                         frame = {}
+                        if len(func.children) > 3:
+                            # closure
+                            frame.update(func.children[3])
                         for i, arg in enumerate(func.children[1].children):
                             frame[arg.token.value] = params[i]
                         self.frames.append(frame)

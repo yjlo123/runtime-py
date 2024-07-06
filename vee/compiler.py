@@ -6,12 +6,14 @@ from vee_parser import Node, NodeType, Parser
 class Compiler:
     def __init__(self, src_file_name):
         self.src_file_name = src_file_name
-        self.funcs = {}
         self.output = []
         self.var_count = 0
         self.label_count = 0
+        self.lambda_count = 0
         self.func_var = None
         self.indent = ''
+        self.defined_funcs= set()
+        self.lambdas = []
 
     # utils
     def increase_indent(self):
@@ -31,6 +33,10 @@ class Compiler:
         self.label_count += 1
         return f'__lbl{self.label_count}'
     
+    def get_new_lambda_name(self):
+        self.lambda_count += 1
+        return f'__lambda{self.lambda_count}'
+    
     def create_identity_node(self, name):
         return Node(NodeType.IDENT, Token(name, TokenType.IDN, 0, 0))
 
@@ -40,6 +46,9 @@ class Compiler:
     def evaluated_identity(self, name):
         # i -> $i
         return self.compile(self.create_identity_node(name))
+
+    def warning(self, msg):
+        print(f'[WARNING] {msg}')
 
     # gen
     def gen_comment(self, msg):
@@ -146,6 +155,9 @@ class Compiler:
         self.add(f'jmp {label}')
 
     def gen_func_call(self, func_name, *args, builtin=False):
+        if not builtin and func_name not in self.defined_funcs:
+            # possibly a lambda
+            func_name = '$' + func_name
         self.add(f'{"" if builtin else "cal "}{func_name} ' + ' '.join(str(arg) for arg in args[0]) if args else '')
 
     def gen_return(self, val):
@@ -157,8 +169,12 @@ class Compiler:
             last_res = self.compile(child)
         return last_res
 
-    def gen_func_def(self, name, args, body):
+    def gen_func_def(self, name, args, body, closure=None):
         self.func_var = set()
+        if closure is not None:
+            self.warning(f'Compiling closure is not supported.')
+            for arg in closure:
+                self.func_var.add(arg)
         for arg in args.children:
             self.func_var.add(arg.token.value)
         self.add(f'def {name}')
@@ -200,8 +216,11 @@ class Compiler:
                     return '$_data'
                 return f'${token.value}'
             case NodeType.FUNC_DEF:
-                self.funcs[children[0].token.value] = ast
-                self.gen_func_def(children[0].token.value, children[1], children[2])
+                func_name = children[0].token.value
+                func_args = children[1]
+                func_body = children[2]
+                self.defined_funcs.add(func_name)
+                self.gen_func_def(func_name, func_args, func_body)
             case NodeType.RETURN:
                 self.gen_return(self.compile(children[0]))
             case NodeType.OPERATOR:
@@ -223,6 +242,12 @@ class Compiler:
                             prefix = '_'
                         self.gen_let(prefix + left.token.value, right_val)
                 else:
+                    match token.value:
+                        case '=>':
+                            lambda_name = self.get_new_lambda_name()
+                            # add lambda to queue, and will be compiled at global
+                            self.lambdas.append((lambda_name, left, right, self.func_var))
+                            return lambda_name
                     left_val = self.compile(left)
                     match token.value:
                         case '.':
@@ -322,8 +347,6 @@ class Compiler:
                             return self.gen_get(left_val, right_val)
                         case ':':
                             return (left_val, right_val)
-                        case '=>':
-                            raise SyntaxError(f'lambda is not supported: {token}')
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:
@@ -441,6 +464,9 @@ class Compiler:
     def compile_ast(self, ast):
         self.gen_comment('==== runtime script ====')
         self.compile(ast)
+        for (name, args, body, closure) in self.lambdas:
+            # compile lambda in global
+            self.gen_func_def(name, args, body, closure=closure)
         # except Exception as e:
         #     print('********** ERROR **********')
         #     print(e)
