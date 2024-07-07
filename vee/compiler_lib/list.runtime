@@ -21,6 +21,14 @@ def #List:get
  ret $_res
 end
 
+def #List:set
+ let _data $0
+ let _idx $1
+ let _val $2
+ get $_data list _list
+ put $_list $_idx $_val
+end
+
 def #List:length
  let _data $0
  get $_data list _list

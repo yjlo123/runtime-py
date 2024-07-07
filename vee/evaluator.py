@@ -113,10 +113,19 @@ class Evaluator:
                 left = children[0] if len(children) >= 1 else None
                 right = children[1] if len(children) >= 2 else None
                 if token.value == '=':
+                    # ASSIGNMENT
                     right_val = self.evaluate(right, scope)
                     if left.type == NodeType.OPERATOR and left.token.value == '.':
                         instance = self.evaluate(left.children[0], scope)
                         instance.data[left.children[1].token.value] = right_val
+                    elif left.type == NodeType.OPERATOR and left.token.value == '[':
+                        container = self.evaluate(left.children[0], scope)
+                        if type(container) is list:
+                            container[int(left.children[1].token.value)] = right_val
+                        elif type(container) is dict:
+                            container[left.children[1].token.value] = right_val
+                        else:
+                            raise Exception(f'Value is not a container: {container}')
                     else:
                         env.set(left.token.value, right_val)
                 else:

@@ -1,0 +1,16 @@
+/*
+    104. Maximum Depth of Binary Tree
+    https://blog.siwei.dev/leetcode/104-maximum-depth-of-binary-tree/
+*/
+import leetcode_utils.TreeNode
+import std_lib.Math
+
+func maxDepth(root) {
+    if root == nil {
+        return 0
+    }
+    return Math.Max(maxDepth(root.left), maxDepth(root.right)) + 1
+}
+
+tree = TreeNode.FromList([3, 9, 20, nil, nil, 15, 7])
+print(maxDepth(tree))

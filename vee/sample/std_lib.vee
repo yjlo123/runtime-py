@@ -1,0 +1,9 @@
+class Math {
+    func Max (a, b) {
+        return if a > b { a } else { b }
+    }
+
+    func Min (a, b) {
+        return if a < b { a } else { b }
+    }
+}

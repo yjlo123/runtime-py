@@ -101,6 +101,9 @@ class Compiler:
         self.gen_let(var, '$ret')
         return self.evaluated_identity(var)
 
+    def gen_list_set(self, container, idx, val):
+        self.add(f'cal #List:set {container} {idx} {val}')
+
     def gen_for2(self, var, range, body_ast):
         # gen using `for`
         self.add(f'for {var} {range}')
@@ -282,6 +285,10 @@ class Compiler:
                         dot_left_val = self.compile(left.children[0])
                         dot_right_val = left.children[1].token.value
                         self.gen_put(dot_left_val, dot_right_val, right_val)
+                    elif left.token.type == TokenType.SYM and left.token.value == '[':
+                        dot_left_val = self.compile(left.children[0])
+                        dot_right_val = self.compile(left.children[1])
+                        self.gen_list_set(dot_left_val, dot_right_val, right_val)
                     else:
                         prefix = ''
                         if self.func_var is not None:
