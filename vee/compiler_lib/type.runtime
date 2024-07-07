@@ -1,0 +1,15 @@
+def #get_type
+ let _val $0
+ typ _res $_val
+ jeq $_res map _check_class
+ jeq $_res list _raw_list
+ jmp _check_done
+ #_check_class
+ get $_val __data_type _res
+ jmp _check_done
+ #_raw_list
+ let _res 'raw_list'
+ jmp _check_done
+ #_check_done
+ ret $_res
+end

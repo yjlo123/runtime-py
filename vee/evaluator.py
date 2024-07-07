@@ -156,12 +156,14 @@ class Evaluator:
                                 elif right.type == NodeType.FUNC_CALL:
                                     # method access
                                     try:
-                                        return self.class_method_call(left_val, right)
+                                        return self.class_method_call(left_val, right, scope)
                                     except ReturnException as e:
                                         # capture method return
                                         return e.value
                             elif right.token.value == 'len':
                                 return len(left_val)
+                            elif type(left_val) is list:
+                                return self.list_operation(left_val, right, scope)
 
                     # operators may not require right evaluated
                     match token.value:
@@ -209,8 +211,11 @@ class Evaluator:
                         case '!=':
                             return left_val != right_val
                         case '..':
-                            return range(int(left_val), int(right_val))
+                            return list(range(int(left_val), int(right_val)))
                         case '[':
+                            # indexing
+                            if int(right_val) >= len(left_val):
+                                raise Exception(f'Index out of range. Len:{len(left_val)} Index:{int(right_val)}')
                             return left_val[int(right_val)]
                         case ':':
                             return (left_val, right_val)
@@ -326,12 +331,12 @@ class Evaluator:
                 self.class_method_run(class_def, instance, 'init', params)
         return instance
 
-    def class_method_call(self, instance, func_call):
+    def class_method_call(self, instance, func_call, scope=None):
         class_def = self.env[instance.class_name]
         method_name = func_call.token.value
         params = []
         if func_call.children:
-            params = self.evaluate(func_call.children[0], scope=instance.data) # TODO scope?
+            params = self.evaluate(func_call.children[0], scope=scope)
         return self.class_method_run(class_def, instance, method_name, params)
 
     def class_static_method_call(self, class_def, func_call):
@@ -358,3 +363,14 @@ class Evaluator:
             returned = e.value
         self.frames.pop()
         return returned
+
+    def list_operation(self, lst, op_ast, scope=None):
+        if op_ast.type == NodeType.FUNC_CALL:
+            params = []
+            if op_ast.children:
+                params = self.evaluate(op_ast.children[0], scope=scope)
+            method_name = op_ast.token.value
+            if method_name == 'push':
+                return lst.append(*params)
+            elif method_name == 'pop':
+                return lst.pop()

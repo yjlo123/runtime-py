@@ -21,7 +21,7 @@ func say_hi(name) {
     return 'hi ' + name
 }
 
-for name : names {
+for name in names {
     if type(name) == 'list' {
         if name.len > 1 {
             print(say_hi(name[0]))
@@ -35,8 +35,8 @@ class Counter {
     name = nil
     count = 0
 
-    func init(new_name) {
-        name = new_name
+    func init(name) {
+        this.name = name
     }
 
     func print_name() {
@@ -44,7 +44,7 @@ class Counter {
     }
 
     func increase() {
-        count = count + 1
+        this.count = this.count + 1
         this
     }
 

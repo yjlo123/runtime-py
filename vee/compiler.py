@@ -3,6 +3,11 @@ from tokenizer import Token, TokenType, Tokenizer
 from vee_parser import Node, NodeType, Parser
 
 
+LIB_LIST = 'list.runtime'
+LIB_TYPE = 'type.runtime'
+LIB_PRINT = 'print.runtime'
+LIB_LEN = 'len.runtime'
+
 class Compiler:
     def __init__(self, src_file_name):
         self.src_file_name = src_file_name
@@ -14,6 +19,7 @@ class Compiler:
         self.indent = ''
         self.defined_funcs= set()
         self.lambdas = []
+        self.required_libs = set()
 
     # utils
     def increase_indent(self):
@@ -80,10 +86,21 @@ class Compiler:
 
     def gen_value_list(self, ast_list):
         var = self.get_new_var()
-        self.gen_let(var, '[]')
-        self.add(f'psh ${var} ' + ' '.join([str(self.compile(ast)) for ast in ast_list]))
+        # self.gen_let(var, '[]')
+        # self.add(f'psh ${var} ' + ' '.join([str(self.compile(ast)) for ast in ast_list]))
+        self.required_libs.add(LIB_LIST)
+        self.add('cal #List')
+        self.gen_let(var, '$ret')
+        for ast in ast_list:
+            self.add(f'cal #List:push {self.evaluated_identity(var)} {str(self.compile(ast))}')
         return self.evaluated_identity(var)
     
+    def gen_list_get(self, arr, idx):
+        var = self.get_new_var()
+        self.add(f'cal #List:get {arr} {idx}')
+        self.gen_let(var, '$ret')
+        return self.evaluated_identity(var)
+
     def gen_for2(self, var, range, body_ast):
         # gen using `for`
         self.add(f'for {var} {range}')
@@ -94,14 +111,22 @@ class Compiler:
 
     def gen_for(self, var, range, body_ast):
         # gen without using `for`
-        var_len_ref = self.gen_len(range)
+        self.required_libs.add(LIB_LIST)
+
+        self.add(f'cal #List:length {range}')
+        var_len = self.get_new_var()
+        self.gen_let(var_len, '$ret')
+
         lbl_begin = self.get_new_label()
         lbl_end = self.get_new_label()
         var_idx = self.get_new_var()
         self.gen_let(var_idx, '0')
         self.gen_label(lbl_begin)
-        self.gen_compare_jump('jeq', self.evaluated_identity(var_idx), var_len_ref, lbl_end)
-        self.gen_get(range, self.evaluated_identity(var_idx), var)
+        self.gen_compare_jump('jeq', self.evaluated_identity(var_idx), self.evaluated_identity(var_len), lbl_end)
+
+        self.add(f'cal #List:get {range} {self.evaluated_identity(var_idx)}')
+        self.gen_let(var, '$ret')
+
         self.compile(body_ast)
         self.gen_op('add', self.evaluated_identity(var_idx), '1', var_idx)
         self.gen_jump(lbl_begin)
@@ -127,14 +152,31 @@ class Compiler:
         self.add(f'put {arr} {idx} {val}')
     
     def gen_len(self, val):
-        var_len = self.get_new_var()
-        self.add(f'len {val} {var_len}')
-        return self.evaluated_identity(var_len)
+        # var_len = self.get_new_var()
+        # self.add(f'len {val} {var_len}')
+        # return self.evaluated_identity(var_len)
+        self.required_libs.add(LIB_TYPE)
+        self.required_libs.add(LIB_LEN)
+        var_type = self.get_new_var()
+        self.add(f'cal #get_length {val}')
+        self.gen_let(var_type, '$ret')
+        return self.evaluated_identity(var_type)
 
     def gen_type(self, val):
+        self.required_libs.add(LIB_TYPE)
         var_type = self.get_new_var()
-        self.add(f'typ {var_type} {val}')
+        self.add(f'cal #get_type {val}')
+        self.gen_let(var_type, '$ret')
         return self.evaluated_identity(var_type)
+    
+    def gen_print(self, params):
+        self.required_libs.add(LIB_TYPE)
+        self.required_libs.add(LIB_PRINT)
+        params_var = self.get_new_var()
+        self.gen_let(params_var, '[]')
+        self.add(f'psh ${params_var} ' + ' '.join(params))
+        self.add(f'cal #print ${params_var}')
+        self.add('prt \'\'')
 
     def gen_compare(self, op, left_val, right_val):
         res = self.get_new_var()
@@ -354,9 +396,14 @@ class Compiler:
                             range_var = self.get_new_var()
                             self.gen_let(range_var, '[]')
                             self.gen_push_range(range_var, left_val, right_val)
-                            return self.evaluated_identity(range_var)
+                            # conver raw list to List instance
+                            self.required_libs.add(LIB_LIST)
+                            self.add(f'cal #buildList {self.evaluated_identity(range_var)}')
+                            range_list_var = self.get_new_var()
+                            self.gen_let(range_list_var, '$ret')
+                            return self.evaluated_identity(range_list_var)
                         case '[':
-                            return self.gen_get(left_val, right_val)
+                            return self.gen_list_get(left_val, right_val)
                         case ':':
                             return (left_val, right_val)
                         case _:
@@ -373,7 +420,8 @@ class Compiler:
                 if children:
                     params = self.compile(children[0])
                 if token.value == 'print':
-                    self.gen_func_call('prt', params or ['\'\''], builtin=True)
+                    return self.gen_print(params or ['\'\''])
+                    #self.gen_func_call('prt', params or ['\'\''], builtin=True)
                 elif token.value == 'type':
                     return self.gen_type(params[0])
                 else:
@@ -476,6 +524,7 @@ class Compiler:
                             break
         
     def compile_ast(self, ast):
+        self.required_libs = set()
         self.gen_comment('==== runtime script ====')
         self.compile(ast)
         for (name, args, body, closure) in self.lambdas:
@@ -485,3 +534,11 @@ class Compiler:
         #     print('********** ERROR **********')
         #     print(e)
         #     print('***************************')
+
+    def get_linked_out(self):
+        lib_out = []
+        for lib in self.required_libs:
+            with open('compiler_lib/' + lib, 'r') as lib_src:
+                while line := lib_src.readline():
+                    lib_out.append(line.rstrip())
+        return lib_out + self.output

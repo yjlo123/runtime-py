@@ -1,6 +1,11 @@
 range = [1,2,3,4]
 
-n = 5
+print(range)
+
+n = 3
+
+print(0..n+1)
+
 for i in 0..n+1 {
     print(i)
 }

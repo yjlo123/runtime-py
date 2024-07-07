@@ -26,6 +26,6 @@ if __name__ == "__main__":
             with open(args.compiled_runtime_script, 'w') as compiled_output_file:
                 compiler = Compiler(src_file.name)
                 compiler.compile_ast(ast)
-                for line in compiler.output:
+                for line in compiler.get_linked_out():
                     #print(line)
                     compiled_output_file.write(line + '\n')

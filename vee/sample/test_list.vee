@@ -1,0 +1,11 @@
+list = [1,2,3]
+
+list.push(4)
+
+print(list)
+
+print(list[2])
+
+print(type(list))
+
+print(type(4))

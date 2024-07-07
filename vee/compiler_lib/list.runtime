@@ -1,0 +1,45 @@
+def #List
+ let _data {}
+ put $_data __class #List
+ put $_data __data_type list
+ put $_data list []
+ ret $_data
+end
+
+def #List:push
+ let _data $0
+ let _val $1
+ get $_data list _list
+ psh $_list $_val
+end
+
+def #List:get
+ let _data $0
+ let _idx $1
+ get $_data list _list
+ get $_list $_idx _res
+ ret $_res
+end
+
+def #List:length
+ let _data $0
+ get $_data list _list
+ len $_list _res
+ ret $_res
+end
+
+def #buildList
+ let _raw $0
+ cal #List
+ let _lst $ret
+ len $_raw _length
+ let _i 0
+ #_next
+ jeq $_i $_length _done
+  get $_raw $_i _val
+  cal #List:push $_lst $_val
+ add _i $_i 1
+ jmp _next
+ #_done
+ ret $_lst
+end
