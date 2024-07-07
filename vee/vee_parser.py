@@ -236,16 +236,23 @@ class Parser:
         self.consume(value='}')
         return block
     
+    def parse_arg(self):
+        arg_token = self.consume(type=TokenType.IDN)
+        arg_node = Node(NodeType.IDENT, arg_token)
+        if self.peek_check('=', TokenType.SYM):
+            # arg has a default value
+            self.consume(TokenType.SYM, '=')
+            arg_node.children.append(self.parse_expression())
+        return arg_node
+
     def parse_args(self):
         token = self.consume(TokenType.SYM, '(')
         node = Node(NodeType.ARG_LIST, token)
         if not self.peek_check(')'):
-            arg = self.consume(type=TokenType.IDN)
-            node.children.append(Node(NodeType.IDENT, arg))
+            node.children.append(self.parse_arg())
             while self.peek_check(','):
                 self.consume(TokenType.SYM, ',')
-                arg = self.consume(type=TokenType.IDN)
-                node.children.append(Node(NodeType.IDENT, arg))
+                node.children.append(self.parse_arg())
         self.consume(TokenType.SYM, ')')
         return node
 

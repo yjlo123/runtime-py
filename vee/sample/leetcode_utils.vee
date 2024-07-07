@@ -40,7 +40,7 @@ class TreeNode {
         this.val = val
     }
 
-    func pretty_print(indent, is_last) {
+    func pretty_print(indent='', is_last=true) {
         head = if is_last { '└──' } else { '├──' }
         print(indent + head + this.val)
         child_head = if is_last { ' ' } else { '│' }

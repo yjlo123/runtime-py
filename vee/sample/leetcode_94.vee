@@ -20,6 +20,6 @@ func inorderTraversal(root) {
 }
 
 tree = TreeNode.FromList([1, 2, 3, nil, 4, nil, nil, 5, 6, nil, 7])
-tree.pretty_print(' ', true)
+tree.pretty_print()
 
 print(inorderTraversal(tree))

@@ -1,0 +1,28 @@
+a = 6
+
+print(10 + a * 3)
+
+func fun(a, b) {
+    return a + b
+}
+
+print(fun(4, 8))
+
+func rec(n) {
+    if n < 1 {
+        return n
+    }
+    return n + rec(n-1)
+}
+
+print(rec(3))
+
+
+func say_hi(name, times=2) {
+    for i in 0..times {
+        print('Hi ' + name)
+    }
+}
+
+say_hi('Siwei')
+say_hi('yjlo', 4)

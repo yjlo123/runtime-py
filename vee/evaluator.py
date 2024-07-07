@@ -271,12 +271,18 @@ class Evaluator:
                         if len(func.children) > 3:
                             # closure
                             frame.update(func.children[3])
-                        for i, arg in enumerate(func.children[1].children):
-                            frame[arg.token.value] = params[i]
+                        func_args = func.children[1]
+                        func_body = func.children[2]
+                        # add arguments parameters mapping to frame
+                        for i, arg in enumerate(func_args.children):
+                            if i >= len(params):
+                                frame[arg.token.value] = self.evaluate(arg.children[0], scope)
+                            else:
+                                frame[arg.token.value] = params[i]
                         self.frames.append(frame)
                         returned = None
                         try:
-                            returned = self.evaluate(func.children[2], scope)
+                            returned = self.evaluate(func_body, scope)
                         except ReturnException as e:
                             # capture function return
                             returned = e.value
@@ -376,7 +382,10 @@ class Evaluator:
 
         frame = {}
         for i, arg in enumerate(args):
-            frame[arg.token.value] = params[i]
+            if i >= len(params):
+                frame[arg.token.value] = self.evaluate(arg.children[0], scope=instance.data)
+            else:
+                frame[arg.token.value] = params[i]
         self.frames.append(frame)
         returned = None
         try:

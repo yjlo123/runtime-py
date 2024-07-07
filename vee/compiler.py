@@ -219,6 +219,16 @@ class Compiler:
             last_res = self.compile(child)
         return last_res
 
+    def gen_check_arg_default_value(self, index, arg):
+        if len(arg.children) > 0:
+            default_value_lbl = self.get_new_label()
+            arg_done_lbl = self.get_new_label()
+            self.gen_compare_jump('jeq', f'${index}', '$nil', default_value_lbl)
+            self.gen_jump(arg_done_lbl)
+            self.gen_label(default_value_lbl)
+            self.gen_let(f'_{arg.token.value}', self.compile(arg.children[0]))
+            self.gen_label(arg_done_lbl)
+
     def gen_func_def(self, name, args, body, closure=None):
         self.func_var = set()
         if closure is not None:
@@ -230,7 +240,8 @@ class Compiler:
         self.add(f'def {name}')
         self.increase_indent()
         for i, arg in enumerate(args.children):
-            self.add(f'let _{arg.token.value} ${i}')
+            self.gen_let(f'_{arg.token.value}', f'${i}')
+            self.gen_check_arg_default_value(i, arg)
         last_res = self.compile(body)
         if last_res is not None:
             self.gen_return(last_res)
@@ -435,7 +446,6 @@ class Compiler:
                     params = self.compile(children[0])
                 if token.value == 'print':
                     return self.gen_print(params or ['\'\''])
-                    #self.gen_func_call('prt', params or ['\'\''], builtin=True)
                 elif token.value == 'type':
                     return self.gen_type(params[0])
                 else:
@@ -512,6 +522,7 @@ class Compiler:
                         for i, arg in enumerate(method_args):
                             self.add(f'let _{arg.token.value} ${i+1}')
                             self.func_var.add(arg.token.value)
+                            self.gen_check_arg_default_value(i+1, arg)
     
                         last_res = self.compile(method_body)
                         if last_res is not None:

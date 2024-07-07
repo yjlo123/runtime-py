@@ -47,20 +47,30 @@ print(person.name)
 person.greet()
 
 class Node {
-    value = 0
+    value = -1
     left = nil
     right = nil
 
     func init(v) {
         this.value = v
     }
+
+    func update_value(value=10) {
+        this.value = value
+    }
 }
 
-node_1 = Node(0)
-node_1.value = 8
+// default contructor
+node_1 = Node()
 print(node_1.value)
 
-node_2 = Node(10)
+node_1.update_value()
+print(node_1.value)
+
+node_1.value = 8
+print(node_1)
+
+node_2 = Node(5)
 node_1.right = node_2
 
 print(node_1.right.value)
