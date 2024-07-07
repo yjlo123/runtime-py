@@ -4,21 +4,22 @@
 */
 import leetcode_utils.TreeNode
 
+func _inorder(node, result) {
+    if node == nil {
+        return nil
+    }
+    _inorder(node.left, result)
+    result.push(node.val)
+    _inorder(node.right, result)
+}
 
-root = TreeNode(1)
+func inorderTraversal(root) {
+    result = []
+    _inorder(root, result)
+    return result
+}
 
-left_tree = TreeNode(4)
-left_tree.left = TreeNode(5)
-//left_tree.right = TreeNode(6)
+tree = TreeNode.FromList([1, 2, 3, nil, 4, nil, nil, 5, 6, nil, 7])
+tree.pretty_print(' ', true)
 
-root.left = left_tree
-root.right = TreeNode(3)
-
-root.pretty_print(' ', true)
-
-print()
-
-root = TreeNode(1)
-root.left = TreeNode(4)
-//root.right = TreeNode(3)
-root.pretty_print(' ', true)
+print(inorderTraversal(tree))
