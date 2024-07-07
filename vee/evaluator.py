@@ -32,7 +32,9 @@ class Environment:
         self._cur_scope = current
         self._frames = frames
 
-    def get(self, name, token=None):
+    def get(self, name, token=None, forced_scope=False):
+        if forced_scope:
+            return self._cur_scope[name]
         # check function scope
         if self._frames and name in self._frames[-1]:
             return self._frames[-1][name]
@@ -89,7 +91,7 @@ class Evaluator:
         }
         self.frames = []
 
-    def evaluate(self, ast, scope=None):
+    def evaluate(self, ast, scope=None, forced_scope=False):
         node_type = ast.type
         token = ast.token
         children = ast.children
@@ -103,7 +105,7 @@ class Evaluator:
                         return int(token.value)
                 return token.value
             case NodeType.IDENT:
-                return env.get(token.value, token)
+                return env.get(token.value, token, forced_scope=forced_scope)
             case NodeType.FUNC_DEF:
                 env.set_global(children[0].token.value, ast)
             case NodeType.RETURN:
@@ -150,7 +152,7 @@ class Evaluator:
                             elif isinstance(left_val, ClassDef):
                                 if right.type == NodeType.IDENT:
                                     # static memeber access
-                                    return self.evaluate(right, scope=left_val.attributes)
+                                    return self.evaluate(right, scope=left_val.attributes, forced_scope=True)
                                 elif right.type == NodeType.FUNC_CALL:
                                     # static method access
                                     try:
@@ -161,7 +163,7 @@ class Evaluator:
                             elif isinstance(left_val, ClassInstance):
                                 if right.type == NodeType.IDENT:
                                     # memeber access
-                                    return self.evaluate(right, scope=left_val.data)
+                                    return self.evaluate(right, scope=left_val.data, forced_scope=True)
                                 elif right.type == NodeType.FUNC_CALL:
                                     # method access
                                     try:
@@ -173,6 +175,8 @@ class Evaluator:
                                 return len(left_val)
                             elif type(left_val) is list:
                                 return self.list_operation(left_val, right, scope)
+                            elif type(left_val) is dict:
+                                return self.map_operation(left_val, right, scope)
 
                     # operators may not require right evaluated
                     match token.value:
@@ -223,15 +227,25 @@ class Evaluator:
                             return list(range(int(left_val), int(right_val)))
                         case '[':
                             # indexing
-                            if int(right_val) >= len(left_val):
-                                raise Exception(f'Index out of range. Len:{len(left_val)} Index:{int(right_val)}')
-                            return left_val[int(right_val)]
+                            if type(left_val) is list:
+                                if int(right_val) >= len(left_val):
+                                    raise Exception(f'Index out of range. Len:{len(left_val)} Index:{int(right_val)}')
+                                return left_val[int(right_val)]
+                            elif type(left_val) is dict:
+                                return left_val.get(right_val)
                         case ':':
                             return (left_val, right_val)
                         case _:
                             raise SyntaxError(f'unhandled operator: {token}')
             case NodeType.EXPR_LIST:
-                return [self.evaluate(expr, scope) for expr in children]
+                if token.value in ('[', '('):
+                    return [self.evaluate(expr, scope) for expr in children]
+                elif token.value == '{':
+                    map_data = {}
+                    for expr in children:
+                        k, v = self.evaluate(expr, scope)
+                        map_data[k] = v
+                    return map_data
             case NodeType.STMT_LIST:
                 result = None
                 for stmt in ast.children:
@@ -383,3 +397,18 @@ class Evaluator:
                 return lst.append(*params)
             elif method_name == 'pop':
                 return lst.pop()
+
+    def map_operation(self, map, op_ast, scope=None):
+        if op_ast.type == NodeType.FUNC_CALL:
+            params = []
+            if op_ast.children:
+                params = self.evaluate(op_ast.children[0], scope=scope)
+            method_name = op_ast.token.value
+            if method_name == 'del':
+                del map[params[0]]
+            elif method_name == 'get':
+                return map.get(params[0])
+            elif method_name == 'set':
+                map[params[0]] = params[1]
+            elif method_name == 'keys':
+                return list(map.keys())

@@ -179,7 +179,8 @@ class Parser:
         node = Node(NodeType.EXPR_LIST, token)
         while self.peek().value != right:
             arg = self.parse_expression()
-            node.children.append(arg)
+            if arg is not None:
+                node.children.append(arg)
             if self.peek().value == ',':
                 self.consume()
         self.consume(type=TokenType.SYM, value=right)
