@@ -1,0 +1,20 @@
+/*
+    1. Two Sum
+    https://blog.siwei.dev/leetcode/1-two-sum/
+*/
+
+func twoSum(nums, target) {
+    map = {}
+    for i in 0..nums.len {
+        comp = target - nums[i]
+        if map.get(comp) != nil {
+            return [map.get(comp), i]
+        }
+        map.set(nums[i], i)
+    }
+    return []
+}
+
+print(twoSum([2, 7, 11, 15], 9))
+print(twoSum([3, 2, 4], 6))
+print(twoSum([3, 2, 4], 8))
