@@ -11,11 +11,11 @@ func addTwoNumbers(l1, l2) {
     while l1 != nil || l2 != nil {
         temp = carry
         if l1 != nil && l2 != nil {
-            temp = temp + l1.val + l2.val
+            temp += l1.val + l2.val
         } else if l1 != nil {
-            temp = temp + l1.val
+            temp += l1.val
         } else {
-            temp = temp + l2.val
+            temp += l2.val
         }
         head.next = ListNode(temp % 10)
         carry = temp / 10

@@ -13,6 +13,40 @@ def #List:push
  psh $_list $_val
 end
 
+def #List:pop
+ let _data $0
+ let _val $1
+ get $_data list _list
+ pop $_list _res
+ ret $_res
+end
+
+def #List:concat
+ let _data $0
+ let _data2 $1
+ get $_data list _list
+ get $_data2 list _list2
+ let _res []
+ cal #List:_add_to_list $_res $_list
+ cal #List:_add_to_list $_res $_list2
+ cal #List:buildList $_res
+ ret $ret
+end
+
+def #List:_add_to_list
+ let _res $0
+ let _lst $1
+ len $_lst _size
+ let _i 0
+ #_next
+ jeq $_i $_size _done
+  get $_lst $_i _val
+  psh $_res $_val
+ add _i $_i 1
+ jmp _next
+ #_done
+end
+
 def #List:get
  let _data $0
  let _idx $1
@@ -36,7 +70,7 @@ def #List:length
  ret $_res
 end
 
-def #buildList
+def #List:buildList
  let _raw $0
  cal #List
  let _lst $ret

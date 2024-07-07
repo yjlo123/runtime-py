@@ -3,6 +3,9 @@ from tokenizer import Token, TokenType, Tokenizer
 from vee_parser import Node, NodeType, Parser
 
 
+SELF_ASSIGN_OPERATORS = ['+=', '-=', '*=', '/=', '/.=', '%=']
+ASSIGN_OPERATORS = SELF_ASSIGN_OPERATORS + ['=']
+
 class ClassDef:
     def __init__(self, name):
         self.name = name
@@ -91,6 +94,57 @@ class Evaluator:
         }
         self.frames = []
 
+    def evaluate_basic_operator(self, token, left_val, right_val):
+        match token.value:
+            case '+':
+                # if left.token.type==TokenType.NUM and right.token.type==TokenType.NUM:
+                #     return float(left_val) + float(right_val)
+                try:
+                    result = float(left_val) + float(right_val)
+                    return int(result) if result.is_integer() else result
+                except:
+                    return str(left_val) + str(right_val)
+            case '-':
+                if right_val == None:
+                    return 0 - int(left_val)
+                result = float(left_val) - float(right_val)
+                return int(result) if result.is_integer() else result
+            case '*':
+                result = float(left_val) * float(right_val)
+                return int(result) if result.is_integer() else result
+            case '/.':
+                return float(left_val) / float(right_val)
+            case '/':
+                return int(left_val) // int(right_val)
+            case '%':
+                return int(left_val) % int(right_val)
+            case '<':
+                return float(left_val) < float(right_val)
+            case '<=':
+                return float(left_val) <= float(right_val)
+            case '>':
+                return float(left_val) > float(right_val)
+            case '>=':
+                return float(left_val) >= float(right_val)
+            case '==':
+                return left_val == right_val
+            case '!=':
+                return left_val != right_val
+            case '..':
+                return list(range(int(left_val), int(right_val)))
+            case '[':
+                # indexing
+                if type(left_val) is list:
+                    if int(right_val) >= len(left_val):
+                        raise Exception(f'Index out of range. Len:{len(left_val)} Index:{int(right_val)}')
+                    return left_val[int(right_val)]
+                elif type(left_val) is dict:
+                    return left_val.get(right_val)
+            case ':':
+                return (left_val, right_val)
+            case _:
+                raise SyntaxError(f'unhandled operator: {token}')
+
     def evaluate(self, ast, scope=None, forced_scope=False):
         node_type = ast.type
         token = ast.token
@@ -114,13 +168,18 @@ class Evaluator:
             case NodeType.OPERATOR:
                 left = children[0] if len(children) >= 1 else None
                 right = children[1] if len(children) >= 2 else None
-                if token.value == '=':
+                if token.value in ASSIGN_OPERATORS:
                     # ASSIGNMENT
                     right_val = self.evaluate(right, scope)
+                    if token.value in SELF_ASSIGN_OPERATORS:
+                        left_val = self.evaluate(left, scope)
+                        right_val = self.evaluate_basic_operator(Token(token.value[:-1], TokenType.SYM, token.line, token.column), left_val, right_val)
                     if left.type == NodeType.OPERATOR and left.token.value == '.':
+                        # assign to member
                         instance = self.evaluate(left.children[0], scope)
                         instance.data[left.children[1].token.value] = right_val
                     elif left.type == NodeType.OPERATOR and left.token.value == '[':
+                        # assign to index
                         container = self.evaluate(left.children[0], scope)
                         if type(container) is list:
                             container[int(left.children[1].token.value)] = right_val
@@ -190,53 +249,8 @@ class Evaluator:
                             return True
 
                     # operators requres right evaluated
-                    right_val = self.evaluate(children[1], scope) if len(children) >= 2 else None
-                    match token.value:
-                        case '+':
-                            if children[0].token.type==TokenType.NUM and children[1].token.type==TokenType.NUM:
-                                return float(left_val) + float(right_val)
-                            try:
-                                return left_val + right_val
-                            except:
-                                return str(left_val) + str(right_val)
-                        case '-':
-                            if right_val == None:
-                                return 0 - int(left_val)
-                            return int(left_val) - int(right_val)
-                        case '*':
-                            return float(left_val) * float(right_val)
-                        case '/.':
-                            return float(left_val) / float(right_val)
-                        case '/':
-                            return left_val // right_val
-                        case '%':
-                            return left_val % right_val
-                        case '<':
-                            return float(left_val) < float(right_val)
-                        case '<=':
-                            return float(left_val) <= float(right_val)
-                        case '>':
-                            return float(left_val) > float(right_val)
-                        case '>=':
-                            return float(left_val) >= float(right_val)
-                        case '==':
-                            return left_val == right_val
-                        case '!=':
-                            return left_val != right_val
-                        case '..':
-                            return list(range(int(left_val), int(right_val)))
-                        case '[':
-                            # indexing
-                            if type(left_val) is list:
-                                if int(right_val) >= len(left_val):
-                                    raise Exception(f'Index out of range. Len:{len(left_val)} Index:{int(right_val)}')
-                                return left_val[int(right_val)]
-                            elif type(left_val) is dict:
-                                return left_val.get(right_val)
-                        case ':':
-                            return (left_val, right_val)
-                        case _:
-                            raise SyntaxError(f'unhandled operator: {token}')
+                    right_val = self.evaluate(right, scope) if len(children) >= 2 else None
+                    return self.evaluate_basic_operator(token, left_val, right_val)
             case NodeType.EXPR_LIST:
                 if token.value in ('[', '('):
                     return [self.evaluate(expr, scope) for expr in children]
@@ -406,6 +420,8 @@ class Evaluator:
                 return lst.append(*params)
             elif method_name == 'pop':
                 return lst.pop()
+            elif method_name == 'concat':
+                return lst + params[0]
 
     def map_operation(self, map, op_ast, scope=None):
         if op_ast.type == NodeType.FUNC_CALL:

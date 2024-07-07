@@ -1,0 +1,25 @@
+/*
+    57. Insert Interval
+    https://blog.siwei.dev/leetcode/57-insert-interval/
+*/
+import std_lib.Math
+
+func insert(intervals, newInterval) {
+    s = newInterval[0]
+    e = newInterval[1]
+    left = []
+    right = []
+    for i in intervals {
+        if i[1] < s {
+            left.push(i)
+        } else if i[0] > e {
+            right.push(i)
+        } else {
+            s = Math.Min(s, i[0])
+            e = Math.Max(e, i[1])
+        }
+    }
+    return left.concat([[s, e]]).concat(right)
+}
+
+print(insert([[1,2],[3,5],[6,7],[8,10],[12,16]], [4,8]))

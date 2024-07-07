@@ -71,14 +71,14 @@ class TreeNode {
         while level.len != 0 {
             next_level = []
             for node in level {
-                i = i + 1
+                i += 1
                 if i < list.len && list[i] != nil {
                     node.left = TreeNode(list[i])
                     next_level.push(node.left)
                 }
 
                 if i + 1 < list.len {
-                    i = i + 1
+                    i += 1
                     if list[i] != nil {
                         node.right = TreeNode(list[i])
                         next_level.push(node.right)

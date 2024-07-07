@@ -9,6 +9,9 @@ LIB_TYPE = 'type.runtime'
 LIB_PRINT = 'print.runtime'
 LIB_LEN = 'len.runtime'
 
+SELF_ASSIGN_OPERATORS = ['+=', '-=', '*=', '/=', '/.=', '%=']
+ASSIGN_OPERATORS = SELF_ASSIGN_OPERATORS + ['=']
+
 class Compiler:
     def __init__(self, src_file_name):
         self.src_file_name = src_file_name
@@ -248,6 +251,57 @@ class Compiler:
         self.decrease_indent()
         self.add(f'end')
         self.func_var = None
+    
+    def compile_basic_operator(self, token, left_val, right_val, right=None):
+        match token.value:
+            case '+':
+                return self.compile(self.gen_op('add', left_val, right_val))
+            case '-':
+                if right is None:
+                    return self.compile(self.gen_op('sub', 0, left_val))
+                return self.compile(self.gen_op('sub', left_val, right_val))
+            case '*':
+                return self.compile(self.gen_op('mul', left_val, right_val))
+            case '/.':
+                return self.compile(self.gen_op('div', left_val, right_val))
+            case '/':
+                return self.compile(self.gen_op('div', left_val, right_val))
+            case '%':
+                return self.compile(self.gen_op('mod', left_val, right_val))
+            case '<':
+                return self.compile(self.gen_compare('jlt', left_val, right_val))
+            case '<=':
+                res_lt = self.compile(self.gen_compare('jlt', left_val, right_val))
+                res_eq = self.compile(self.gen_compare('jeq', left_val, right_val))
+                sum_res = self.compile(self.gen_op("add", res_lt, res_eq))
+                return self.compile(self.gen_compare('jgt', sum_res, 0))
+            case '>':
+                return self.compile(self.gen_compare('jgt', left_val, right_val))
+            case '>=':
+                res_lt = self.compile(self.gen_compare('jgt', left_val, right_val))
+                res_eq = self.compile(self.gen_compare('jeq', left_val, right_val))
+                sum_res = self.compile(self.gen_op("add", res_lt, res_eq))
+                return self.compile(self.gen_compare('jgt', sum_res, 0))
+            case '==':
+                return self.compile(self.gen_compare('jeq', left_val, right_val))
+            case '!=':
+                return self.compile(self.gen_compare('jne', left_val, right_val))
+            case '..':
+                range_var = self.get_new_var()
+                self.gen_let(range_var, '[]')
+                self.gen_push_range(range_var, left_val, right_val)
+                # conver raw list to List instance
+                self.required_libs.add(LIB_LIST)
+                self.add(f'cal #List:buildList {self.evaluated_identity(range_var)}')
+                range_list_var = self.get_new_var()
+                self.gen_let(range_list_var, '$ret')
+                return self.evaluated_identity(range_list_var)
+            case '[':
+                return self.gen_list_get(left_val, right_val)
+            case ':':
+                return (left_val, right_val)
+            case _:
+                raise SyntaxError(f'unhandled operator: {token}')
 
     def compile(self, ast):
         node_type = ast.type
@@ -295,8 +349,13 @@ class Compiler:
                 left = children[0] if len(children) >= 1 else None
                 right = children[1] if len(children) >= 2 else None
                 right_val = None
-                if token.value == '=':
+                if token.value in ASSIGN_OPERATORS:
+                    # assignment
                     right_val = self.compile(right)
+                    if token.value in SELF_ASSIGN_OPERATORS:
+                        left_val = self.compile(left)
+                        right_val = self.compile_basic_operator(Token(token.value[:-1], TokenType.SYM, token.line, token.column), left_val, right_val)
+
                     if left.token.type == TokenType.SYM and left.token.value == '.':
                         dot_left_val = self.compile(left.children[0])
                         dot_right_val = left.children[1].token.value
@@ -382,55 +441,8 @@ class Compiler:
 
                     if right is not None and right_val is None:
                         right_val = self.compile(right)
-                    match token.value:
-                        case '+':
-                            return self.compile(self.gen_op('add', left_val, right_val))
-                        case '-':
-                            if right is None:
-                                return self.compile(self.gen_op('sub', 0, left_val))
-                            return self.compile(self.gen_op('sub', left_val, right_val))
-                        case '*':
-                            return self.compile(self.gen_op('mul', left_val, right_val))
-                        case '/.':
-                            return self.compile(self.gen_op('div', left_val, right_val))
-                        case '/':
-                            return self.compile(self.gen_op('div', left_val, right_val))
-                        case '%':
-                            return self.compile(self.gen_op('mod', left_val, right_val))
-                        case '<':
-                            return self.compile(self.gen_compare('jlt', left_val, right_val))
-                        case '<=':
-                            res_lt = self.compile(self.gen_compare('jlt', left_val, right_val))
-                            res_eq = self.compile(self.gen_compare('jeq', left_val, right_val))
-                            sum_res = self.compile(self.gen_op("add", res_lt, res_eq))
-                            return self.compile(self.gen_compare('jgt', sum_res, 0))
-                        case '>':
-                            return self.compile(self.gen_compare('jgt', left_val, right_val))
-                        case '>=':
-                            res_lt = self.compile(self.gen_compare('jgt', left_val, right_val))
-                            res_eq = self.compile(self.gen_compare('jeq', left_val, right_val))
-                            sum_res = self.compile(self.gen_op("add", res_lt, res_eq))
-                            return self.compile(self.gen_compare('jgt', sum_res, 0))
-                        case '==':
-                            return self.compile(self.gen_compare('jeq', left_val, right_val))
-                        case '!=':
-                            return self.compile(self.gen_compare('jne', left_val, right_val))
-                        case '..':
-                            range_var = self.get_new_var()
-                            self.gen_let(range_var, '[]')
-                            self.gen_push_range(range_var, left_val, right_val)
-                            # conver raw list to List instance
-                            self.required_libs.add(LIB_LIST)
-                            self.add(f'cal #buildList {self.evaluated_identity(range_var)}')
-                            range_list_var = self.get_new_var()
-                            self.gen_let(range_list_var, '$ret')
-                            return self.evaluated_identity(range_list_var)
-                        case '[':
-                            return self.gen_list_get(left_val, right_val)
-                        case ':':
-                            return (left_val, right_val)
-                        case _:
-                            raise SyntaxError(f'unhandled operator: {token}')
+                    return self.compile_basic_operator(token, left_val, right_val, right)
+                    
             case NodeType.EXPR_LIST:
                 if token.value == '[':
                     return self.gen_value_list(children)
