@@ -1,0 +1,37 @@
+def #Map
+ let _data {}
+ put $_data __class #Map
+ put $_data __data_type map
+ put $_data map {}
+ ret $_data
+end
+
+def #Map:get
+ let _data $0
+ let _key $1
+ get $_data map _map
+ get $_map $_key _res
+ ret $_res
+end
+
+def #Map:set
+ let _data $0
+ let _key $1
+ let _val $2
+ get $_data map _map
+ put $_map $_key $_val
+end
+
+def #Map:del
+ let _data $0
+ let _key $1
+ get $_data map _map
+ del $_map $_key
+end
+
+def #Map:length
+ let _data $0
+ get $_data map _map
+ len $_map _res
+ ret $_res
+end

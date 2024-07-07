@@ -4,6 +4,7 @@ from vee_parser import Node, NodeType, Parser
 
 
 LIB_LIST = 'list.runtime'
+LIB_MAP = 'map.runtime'
 LIB_TYPE = 'type.runtime'
 LIB_PRINT = 'print.runtime'
 LIB_LEN = 'len.runtime'
@@ -86,8 +87,6 @@ class Compiler:
 
     def gen_value_list(self, ast_list):
         var = self.get_new_var()
-        # self.gen_let(var, '[]')
-        # self.add(f'psh ${var} ' + ' '.join([str(self.compile(ast)) for ast in ast_list]))
         self.required_libs.add(LIB_LIST)
         self.add('cal #List')
         self.gen_let(var, '$ret')
@@ -95,6 +94,15 @@ class Compiler:
             self.add(f'cal #List:push {self.evaluated_identity(var)} {str(self.compile(ast))}')
         return self.evaluated_identity(var)
     
+    def gen_value_map(self, ast_list):
+        var = self.get_new_var()
+        self.required_libs.add(LIB_MAP)
+        self.add('cal #Map')
+        self.gen_let(var, '$ret')
+        for ast in ast_list:
+            self.add(f'cal #Map:set {self.evaluated_identity(var)} {str(self.compile(ast.children[0]))} {str(self.compile(ast.children[1]))}')
+        return self.evaluated_identity(var)
+
     def gen_list_get(self, arr, idx):
         var = self.get_new_var()
         self.add(f'cal #List:get {arr} {idx}')
@@ -155,9 +163,6 @@ class Compiler:
         self.add(f'put {arr} {idx} {val}')
     
     def gen_len(self, val):
-        # var_len = self.get_new_var()
-        # self.add(f'len {val} {var_len}')
-        # return self.evaluated_identity(var_len)
         self.required_libs.add(LIB_TYPE)
         self.required_libs.add(LIB_LEN)
         var_type = self.get_new_var()
@@ -418,6 +423,8 @@ class Compiler:
             case NodeType.EXPR_LIST:
                 if token.value == '[':
                     return self.gen_value_list(children)
+                elif token.value == '{':
+                    return self.gen_value_map(children)
                 else:
                     return [self.compile(expr) for expr in children]
             case NodeType.STMT_LIST:

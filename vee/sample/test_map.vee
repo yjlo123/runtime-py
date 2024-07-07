@@ -4,10 +4,10 @@ map = {
 }
 
 print(map)
-map['xyz'] = true
-print(map)
+// map['xyz'] = true
+// print(map)
 
-print(map['ab'])
+// print(map['ab'])
 
 map.del('yjlo')
 print(map)
