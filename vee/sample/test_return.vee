@@ -1,9 +1,0 @@
-func test(a) {
-    if a > 4 {
-        return 1
-    }
-    print("should not be here")
-    return 0
-}
-
-print(test(8))
